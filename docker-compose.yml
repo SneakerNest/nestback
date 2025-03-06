@@ -1,0 +1,30 @@
+version: '3.8'  # This line can be omitted if you prefer; it's not mandatory
+
+services:
+  db:
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: test  # Set root password
+      MYSQL_DATABASE: SneakerNest  # Create the database automatically
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql  # Use a named volume for persistent storage
+
+  app:
+    build: .
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db  # Refers to the MySQL service defined above
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASS: test
+      DB_NAME: SneakerNest
+
+volumes:
+  db_data:  # Define the named volume for MySQL
