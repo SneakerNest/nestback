@@ -7,6 +7,7 @@ import "../DB/index.js";
 import { connectToDatabase } from '../DB/index.js';
 config();
 // creating an express app
+
 const app = express();
 app.use(bodyParser.json());
 app.use("/api/v1/users", appRouter); 
