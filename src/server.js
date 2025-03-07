@@ -14,7 +14,7 @@ app.use("/api/v1/users", appRouter);
 
 // Add root route handler
 app.get('/', (req, res) => {
-    res.send('Welcome to the API');
+    res.send('luv u ');
 });
 
 // defining the port

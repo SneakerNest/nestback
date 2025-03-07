@@ -18,12 +18,17 @@ services:
     env_file: .env
     ports: 
       - "$NODE_LOCAL_PORT:$NODE_DOCKER_PORT"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
     environment:
       - DB_HOST= db
       - DB_USER=$MYSQLDB_USER
       - DB_PASSWORD=$MYSQLDB_ROOT_PASSWORD
       - DB_NAME=$MYSQLDB_DATABASE
       - DB_PORT=$MYSQLDB_DOCKER_PORT
+      - NODE_ENV=development
+    command: npm run dev
     stdin_open: true
     tty: true
 
