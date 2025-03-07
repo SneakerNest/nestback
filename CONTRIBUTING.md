@@ -2,6 +2,8 @@
 
 ## Open Docker Desktop first then do the below in your terminal!
 
+## after opening docker desktop (write (npm i) in your terminal) to install dependencies
+
 ## Run the System
 We can easily run the whole with only a single command:
 ```bash
