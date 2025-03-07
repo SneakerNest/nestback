@@ -12,15 +12,15 @@ const app = express();
 app.use(bodyParser.json());
 app.use("/api/v1/users", appRouter); 
 
-// defining the port
-const PORT = process.env.PORT || 3000;
-
-// if DB is connected, start the server
-connectToDatabase().then(() => {
-    app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-}).catch (error => {
-    console.log('error connecting: ' + error);
-    process.exit(0);
+// Add root route handler
+app.get('/', (req, res) => {
+    res.send('Welcome to the API');
 });
 
+// defining the port
+const PORT = process.env.NODE_DOCKER_PORT || 8080;
 
+// if DB is connected, start the server
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+});
