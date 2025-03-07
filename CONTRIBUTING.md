@@ -27,3 +27,8 @@ If you need to stop and remove all containers, networks, volumes, and all images
 ```bash
 docker compose down --rmi all -v
 ```
+
+To check if all worked, open your browser and search: 
+```bash
+http://localhost:6868/
+```
