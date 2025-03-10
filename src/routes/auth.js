@@ -1,9 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const { register,login } = require('../controllers/authController');
-const { validateRegistration } = require('../middleware/validate');
+import { Router } from 'express';
+import { register, login, getAllUsers  } from '../controllers/authController.js';
+import { validateRegistration } from '../middleware/validate.js';
 
-router.post('/login', login); 
+const router = Router();
+
+// Auth Routes POST
+router.post('/login', login);
 router.post('/register', validateRegistration, register);
 
-module.exports = router;
+// User Routes GET
+router.get('/', getAllUsers);
+
+export default router;
