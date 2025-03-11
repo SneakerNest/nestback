@@ -1,4 +1,4 @@
-import { find, create } from '../../DB/queries.js';
+import { find, create } from '../db/queries.js';
 import { registerUser, loginUser } from '../Services/userService.js';
 
 // Register User

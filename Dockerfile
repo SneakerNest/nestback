@@ -7,14 +7,17 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
+# Install all dependencies (including dev dependencies like nodemon)
 RUN npm install
 
-# Copy the entire src directory
+# Install nodemon globally
+RUN npm install -g nodemon
+
+# Copy the entire project
 COPY . .
 
 # Expose the application port
-EXPOSE 8080
+EXPOSE 3000
 
 # Command to run the application
 CMD ["npm", "run", "dev"]

@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
 import appRouter from './routes/auth.js';
-import { connectToDatabase } from '../src/config/database.js';
+import { connectToDatabase } from './config/database.js';
 
 // Create Express app
 const app = express();
@@ -24,6 +24,6 @@ connectToDatabase()
         });
     })
     .catch((err) => {
-        console.error('Failed to start server due to database connection error:', err);
+        console.error('Failed to start server due to database connection error:', err.message);
         process.exit(1); // Exit the process if the database connection fails
 });

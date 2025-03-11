@@ -1,4 +1,4 @@
-import { create, findByEmail, findByUsername } from '../../DB/queries.js';
+import { create, findByEmail, findByUsername } from '../db/queries.js';
 import bcrypt from 'bcryptjs';
 
 export const registerUser = async ({ name, username, email, password }) => {

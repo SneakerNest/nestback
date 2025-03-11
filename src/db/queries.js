@@ -1,4 +1,4 @@
-import { pool } from '../src/config/database.js';
+import { pool } from '../config/database.js';
 
 // Find all users
 export const find = async () => {
