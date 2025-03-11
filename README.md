@@ -25,7 +25,7 @@
 
     If the database is not yet set up, run the following to import the schema (if you have a `.sql` dump):
     ```bash
-    docker exec -i nestback-db-1 mysql -u root -p yourpassword sneaker_nest < db_dump.sql
+    docker exec -i nestback-db-1 mysql -u root -p yourpassword sneaker_nest < mydbscheme_dump.sql
     ```
 
 4. **Access the Application:**
