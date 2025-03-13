@@ -1,38 +1,37 @@
-import { find, create } from '../db/queries.js';
-import { registerUser, loginUser } from '../Services/userService.js';
+import { registerUser, loginUser } from '../services/userService.js';
+import { getAllUsers } from '../db/queries.js';
 
-// Register User
 export const register = async (req, res) => {
   try {
-      const { name, username, email, password } = req.body;
-      const user = await registerUser({ name, username, email, password });
-      res.status(201).json({
-          message: 'User registered successfully',
-          user: { name: user.name, username: user.username, email: user.email },
-      });
+    const user = await registerUser(req.body);
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: { username: user.username, name: user.name, email: user.email },
+      token: user.token,
+    });
   } catch (error) {
-      res.status(400).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 };
 
-// Login User
 export const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await loginUser({ email, password });
-        res.json({ message: 'Login successful', user });
-    } catch (error) {
-        res.status(401).json({ message: error.message });
-    }
+  try {
+    const user = await loginUser(req.body);
+    res.json({
+      message: 'Login successful',
+      user: { username: user.username, name: user.name, email: user.email },
+      token: user.token,
+    });
+  } catch (error) {
+    res.status(401).json({ message: error.message });
+  }
 };
 
-// Get All Users
-export const getAllUsers = async (req, res) => {
-    try {
-        const users = await find();
-        return res.status(200).json({ users });
-    } catch (error) {
-        res.status(500).json({ error });
-    }
+export const listUsers = async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch users' });
+  }
 };
-

@@ -1,39 +1,36 @@
-import { create, findByEmail, findByUsername } from '../db/queries.js';
+import { findByEmail, findByUsername, createUser } from '../db/queries.js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret'; // Fallback for safety
+
+// Hash password
+const hashPassword = async (password) => {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(password, salt);
+};
+
+// Generate JWT token
+const generateToken = (user) => {
+  return jwt.sign({ username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+};
 
 export const registerUser = async ({ name, username, email, password }) => {
-    console.log('Registering user:', { name, username, email });
+  const existingUser = await findByUsername(username);
+  if (existingUser) throw new Error('Username already taken');
 
-    // Check if the username or email already exists in the DB
-    const existingEmail = await findByEmail(email);
-    const existingUser = await findByUsername(username);
+  const existingEmail = await findByEmail(email);
+  if (existingEmail) throw new Error('Email already in use');
 
-    if (existingEmail || existingUser) {
-        throw new Error('Username or email already exists');
-    }
-
-    // Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create new user in the DB
-    const newUser = await create(name, username, email, hashedPassword);
-
-    console.log('User created successfully:', newUser);
-
-    return { name: newUser.name, username: newUser.username, email: newUser.email };
+  const hashedPassword = await hashPassword(password);
+  const newUser = await createUser({ name, username, email, password: hashedPassword });
+  return { ...newUser, token: generateToken(newUser) };
 };
-// Login User
+
 export const loginUser = async ({ email, password }) => {
-  // Fetch user by email from the DB
   const user = await findByEmail(email);
-
-  // Check if the user exists and validate password
   if (!user || !(await bcrypt.compare(password, user.password))) {
-      throw new Error('Invalid credentials');
+    throw new Error('Invalid email or password');
   }
-
-  console.log('User logged in successfully:', user);
-
-  return { name: user.name, username: user.username, email: user.email };
+  return { ...user, token: generateToken(user) };
 };

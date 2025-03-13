@@ -1,64 +1,43 @@
+// src/db/queries.js
 import { pool } from '../config/database.js';
 
-// Find all users
-export const find = async () => {
-    const QUERY = "SELECT * FROM USERS";
-    try {
-        const client = await pool.getConnection();
-        const [result] = await client.query(QUERY); // Destructure to get the result array
-        return result;
-    } catch (error) {
-        console.log('Error occurred while finding all records: ' + error);
-        throw error;
-    }
+// Helper to execute queries safely
+const executeQuery = async (query, params = []) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    const [rows] = await connection.query(query, params);
+    return rows;
+  } catch (error) {
+    console.error(`Query failed: ${error.message}`);
+    throw error;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+// Get all users
+export const getAllUsers = async () => {
+  return executeQuery('SELECT * FROM USERS');
 };
 
 // Find user by username
 export const findByUsername = async (username) => {
-    const QUERY = "SELECT * FROM USERS WHERE username = ?";
-    try {
-        const client = await pool.getConnection();
-        const [result] = await client.query(QUERY, [username]);
-        return result.length > 0 ? result[0] : null;
-    } catch (error) {
-        console.log('Error occurred while finding by username: ' + error);
-        throw error;
-    }
+  const results = await executeQuery('SELECT * FROM USERS WHERE username = ?', [username]);
+  return results[0] || null;
 };
+
 // Find user by email
 export const findByEmail = async (email) => {
-    const QUERY = "SELECT * FROM USERS WHERE email = ?";
-    try {
-        const client = await pool.getConnection();
-        const [result] = await client.query(QUERY, [email]);
-        return result.length > 0 ? result[0] : null;
-    } catch (error) {
-        console.log('Error occurred while finding by email: ' + error);
-        throw error;
-    }
-};
-//Create username
-export const create = async (name, username, email, password) => {
-    const QUERY = `INSERT INTO USERS (name, username, email, password) VALUES (?, ?, ?, ?)`;
-    try {
-        const client = await pool.getConnection();
-        const [result] = await client.query(QUERY, [name, username, email, password]);
-
-        console.log("Insert Result: ", result);
-
-        if (result && result.affectedRows > 0) {
-            return {
-                name,
-                username,
-                email,
-            };
-        } else {
-            throw new Error("Insert operation failed.");
-        }
-    } catch (error) {
-        console.log('Error occurred while creating a new user: ' + error);
-        throw error;
-    }
+  const results = await executeQuery('SELECT * FROM USERS WHERE email = ?', [email]);
+  return results[0] || null;
 };
 
-
+// Create a new user
+export const createUser = async ({ name, username, email, password }) => {
+  await executeQuery(
+    'INSERT INTO USERS (name, username, email, password) VALUES (?, ?, ?, ?)',
+    [name, username, email, password]
+  );
+  return findByUsername(username); // Return the newly created user
+};
