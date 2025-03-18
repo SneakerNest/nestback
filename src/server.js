@@ -3,18 +3,20 @@ dotenv.config();
 import express from 'express';
 import appRouter from './routes/auth.js';
 import { connectToDatabase } from './config/database.js';
+import cors from 'cors'; 
 
-// Create Express app
 const app = express();
 
 // Middleware
-app.use(express.json()); // Parse JSON request bodies (replaces body-parser)
+app.use(cors({ origin: 'http://localhost:5173' })); 
+ // Allow frontend requests
+app.use(express.json()); // Parse JSON request bodies
 
 // Routes
 app.use('/api/v1/users', appRouter); // Mount the router at /api/v1/users
 
 // Define the port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Start the server only if the database connection succeeds
 connectToDatabase()

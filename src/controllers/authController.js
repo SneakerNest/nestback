@@ -1,5 +1,5 @@
-import { registerUser, loginUser } from '../services/userService.js';
-import { getAllUsers } from '../db/queries.js';
+import { registerUser, loginUser } from "../services/userService.js";
+import { getAllUsers } from "../db/queries.js";
 
 export const register = async (req, res) => {
   try {
