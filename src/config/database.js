@@ -4,11 +4,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const pool = mysql.createPool({
-    host: process.env.DB_HOST, 
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 3306,
+    host: process.env.DB_HOST || 'db', 
+    user: process.env.MYSQLDB_USER,  
+    password: process.env.MYSQLDB_ROOT_PASSWORD,  
+    database: process.env.MYSQLDB_DATABASE,  
+    port: process.env.MYSQLDB_DOCKER_PORT || 3306,  
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -16,8 +16,7 @@ const pool = mysql.createPool({
 
 const connectToDatabase = async () => {
     const MAX_RETRIES = 10;
-    const RETRY_DELAY = 2000; // 2 seconds
-
+    const RETRY_DELAY = 5000; 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             const connection = await pool.getConnection();

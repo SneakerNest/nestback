@@ -1,37 +1,37 @@
-  services:
-    db:
-      image: mysql:latest
-      restart: unless-stopped
-      env_file: .env  # This ensures .env variables are loaded
-      environment:
-        MYSQL_ROOT_PASSWORD: "${MYSQLDB_ROOT_PASSWORD}"
-        MYSQL_DATABASE: "${MYSQLDB_DATABASE}"
-      ports: 
-        - "${MYSQLDB_LOCAL_PORT}:${MYSQLDB_DOCKER_PORT}"
-      volumes:
-        - db:/var/lib/mysql
+services:
+  db:
+    image: mysql:latest
+    restart: unless-stopped
+    env_file: .env 
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQLDB_ROOT_PASSWORD}" 
+      MYSQL_DATABASE: "${MYSQLDB_DATABASE}"  
+    ports: 
+      - "${MYSQLDB_LOCAL_PORT}:${MYSQLDB_DOCKER_PORT}"  
+    volumes:
+      - db:/var/lib/mysql
 
-    back:
-      depends_on:
-        - db
-      build: .
-      restart: unless-stopped
-      env_file: .env
-      ports: 
-        - "${NODE_LOCAL_PORT}:${NODE_DOCKER_PORT}"
-      volumes:
-        - .:/usr/src/app
-        - /usr/src/app/node_modules
-      environment:
-        DB_HOST: db
-        DB_USER: "${MYSQLDB_USER}"
-        DB_PASSWORD: "${MYSQLDB_ROOT_PASSWORD}"
-        DB_NAME: "${MYSQLDB_DATABASE}"
-        DB_PORT: "${MYSQLDB_DOCKER_PORT}"
-        NODE_ENV: development
-      command: npm run dev
-      stdin_open: true
-      tty: true
+  back:
+    depends_on:
+      - db
+    build: .
+    restart: unless-stopped
+    env_file: .env  
+    ports: 
+      - "${NODE_LOCAL_PORT}:${NODE_DOCKER_PORT}"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      DB_HOST: db  
+      DB_USER: "${MYSQLDB_USER}"
+      DB_PASSWORD: "${MYSQLDB_ROOT_PASSWORD}"
+      DB_NAME: "${MYSQLDB_DATABASE}"
+      DB_PORT: "${MYSQLDB_DOCKER_PORT}"
+      NODE_ENV: development
+    command: npm run dev
+    stdin_open: true
+    tty: true
 
-  volumes:
-    db:
+volumes:
+  db:

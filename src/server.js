@@ -8,7 +8,7 @@ import cors from 'cors';
 const app = express();
 
 // Middleware
-app.use(cors({ origin: 'http://localhost:5173' })); 
+app.use(cors());
  // Allow frontend requests
 app.use(express.json()); // Parse JSON request bodies
 
@@ -16,7 +16,7 @@ app.use(express.json()); // Parse JSON request bodies
 app.use('/api/v1/users', appRouter); // Mount the router at /api/v1/users
 
 // Define the port
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.NODE_DOCKER_PORT||3000;
 
 // Start the server only if the database connection succeeds
 connectToDatabase()
