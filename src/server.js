@@ -10,10 +10,9 @@ const app = express();
 // Middleware
 app.use(cors());
  // Allow frontend requests
-app.use(express.json()); // Parse JSON request bodies
-
+app.use(express.json()); 
 // Routes
-app.use('/api/v1/users', appRouter); // Mount the router at /api/v1/users
+app.use('/api/v1/users', appRouter);
 
 // Define the port
 const PORT = process.env.NODE_DOCKER_PORT||3000;
@@ -22,7 +21,7 @@ const PORT = process.env.NODE_DOCKER_PORT||3000;
 connectToDatabase()
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
-            console.log(`Server running on port ${PORT}`);
+            console.log(`Server running on Docker Port ${PORT}`);
         });
     })
     .catch((err) => {
