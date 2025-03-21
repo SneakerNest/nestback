@@ -1,54 +1,103 @@
-# SneakerNest Project
+# Sneaker Nest Backend
 
-## Requirement
+This project is the backend for the Sneaker Nest application. It uses Node.js, Express, and MySQL. The backend is containerized using Docker and Docker Compose.
 
-1. **Create a `.env` file:**
+## Prerequisites
 
-    Create a `.env` file based on the `.env.example` file (or your provided example) with the following content:
-    ```env
-    DB_HOST=localhost
-    DB_USER=root
-    DB_PASSWORD=yourpassword
-    DB_NAME=sneaker_nest
-    DB_PORT=3306
-    ```
+- Docker
+- Docker Compose
+- Node.js
+- npm
 
-2. **Build and Run Docker Containers:**
+## Getting Started
+Follow the instructions below to set up and run the backend server on your local machine and docker compose.
 
-    Build and start the containers:
-    ```bash
-    docker-compose build
-    docker-compose up -d
-    ```
+## Setting Up the Backend Server
 
-3. **Set up the Database:**
+### Clone the repository
+```bash
+git clone https://github.com/SneakerNest/nestback.git
+```
+### Install Dependencies
+Run the following command to install all the necessary packages:
+```bash
+npm install
+```
+### Environment Variables
 
-    If the database is not yet set up, run the following to import the schema (if you have a `.sql` dump):
-    ```bash
-    docker exec -i nestback-db-1 mysql -u root -p yourpassword sneaker_nest < mydbscheme_dump.sql
-    ```
+Create a `.env` file in the root directory of the project with the following content:
 
-4. **Access the Application:**
+```bash
+# MySQL Configuration (Docker)
+DB_HOST=db
+MYSQLDB_USER=root
+MYSQLDB_ROOT_PASSWORD=yourpassword
+MYSQLDB_DATABASE=sneaker_nest
+MYSQLDB_DOCKER_PORT=3306
+MYSQLDB_LOCAL_PORT=3306
+NODE_LOCAL_PORT=5001
 
-    Visit `http://localhost:3000` in your browser to access the application.
+# Node.js Configuration (Docker)
+NODE_DOCKER_PORT=3000
 
-## Troubleshooting
+# JWT Secret
+JWT_SECRET=sQ4kdL9vY7wkmZspj7wp8YQXxjpfv3yU
+```
 
-- If the application isn't running, check the logs for the backend container:
-    ```bash
-    docker logs nestback-back-1
-    ```
+### Docker Container 
 
-- If you can't connect to the MySQL database, check the MySQL container logs:
-    ```bash
-    docker logs nestback-db-1
-    ```
+Run the following commands to build and start the Docker containers:
+```bash
+docker-compose build
+docker-compose up
+```
+This will build the Docker images and start the containers. The backend server will be running on port 3000 (mapped to 5001 on your local machine), and the MySQL database will be running on port 3306.
 
-- If there's an issue with the database connection, ensure the database credentials are correct in the `.env` file.
+## Database Setup
+
+### Initial Setup
+
+For the first time setup or whenever a new table is created, follow these steps:
+
+Access the MySQL container
+
+Run the following command to access the MySQL container:
+```bash
+docker exec -it [name_of_db_container] mysql -u root -p
+```
+
+Replace [name_of_db_container] with the name of your MySQL container. You will be prompted to enter the MySQL root password.
+
+### Create the necessary tables
+
+For example, to create the USERS table, run the following SQL command:
+```sql
+CREATE TABLE USERS (
+    name VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NOT NULL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+```
+Ensure that the table is created in the sneaker_nest database.
+
+## Testing 
+
+### Check if the server is running
+
+Open your browser and navigate to http://localhost:5001/. You should see a response indicating that the server is running.
+
+### Use Postman to test the API endpoints
+
+Use Postman to send requests to the API endpoints and verify that everything is working correctly.
+
+## Summary
+
+By following these steps, you will set up the backend for the Sneaker Nest application, including the database and server. You can then use Postman to test the API endpoints and ensure that everything is working as expected.
 
 ## Additional Notes
 
-- The backend service runs on port `3000`, and the MySQL service is exposed on port `3307` (or whatever you set it to in `docker-compose.yml`).
-
-Feel free to adjust any placeholders (like `yourpassword` or `your-repo-url`) to make the instructions specific to your project.
-
+Ensure that Docker and Docker Compose are installed and running on your machine.
+The .env file should be created in the root directory of the project.
+The MySQL container name should be replaced with the actual name of your MySQL container when running the docker exec command.
+The initial database setup steps are only required for the first time setup or whenever a new table is created.
