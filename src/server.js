@@ -6,14 +6,14 @@ import { connectToDatabase } from './config/database.js';
 import cors from 'cors'; 
 
 const app = express();
-
+console.log('NODE_DOCKER_PORT:', process.env.NODE_DOCKER_PORT);
 // Middleware
 app.use(cors());
  // Allow frontend requests
-app.use(express.json()); // Parse JSON request bodies
+app.use(express.json()); 
 
 // Routes
-app.use('/api/v1/users', appRouter); // Mount the router at /api/v1/users
+app.use('/api/v1/users', appRouter); 
 
 // Define the port
 const PORT = process.env.NODE_DOCKER_PORT||3000;

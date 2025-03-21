@@ -11,8 +11,13 @@ const hashPassword = async (password) => {
 };
 
 // Generate JWT token
+// ??????????????????
 const generateToken = (user) => {
-  return jwt.sign({ username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+  return jwt.sign(
+    { username: user.username, email: user.email, role: user.role }, 
+    JWT_SECRET,
+    { expiresIn: '1h' }
+  );
 };
 
 export const registerUser = async ({ name, username, email, password }) => {
@@ -24,13 +29,16 @@ export const registerUser = async ({ name, username, email, password }) => {
 
   const hashedPassword = await hashPassword(password);
   const newUser = await createUser({ name, username, email, password: hashedPassword });
-  return { ...newUser, token: generateToken(newUser) };
+  
+  // Fetch the full user object with role (or set a default role)
+  const fullUser = await findByUsername(username); // This will include role via checkRole
+  return { ...fullUser, token: generateToken(fullUser) };
 };
 
 export const loginUser = async ({ email, password }) => {
-  const user = await findByEmail(email);
+  const user = await findByEmail(email); // Fetch user by email and determine their role
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new Error('Invalid email or password');
   }
-  return { ...user, token: generateToken(user) };
+  return { ...user, token: generateToken(user) }; // user.role is included here
 };

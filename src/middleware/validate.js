@@ -1,6 +1,5 @@
 import { body, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
-
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
 
 // Registration validation rules
@@ -27,4 +26,21 @@ export const verifyToken = (req, res, next) => {
   } catch (error) {
     res.status(401).json({ message: 'Invalid token' });
   }
+};
+
+
+// Middleware to verify if the user is a sales manager
+export const isSalesManager = (req, res, next) => {
+  if (req.user.role !== 'sales_manager') {
+    return res.status(403).json({ message: 'Access denied. You must be a sales manager.' });
+  }
+  next();
+};
+
+// Middleware to verify if the user is a product manager
+export const isProductManager = (req, res, next) => {
+  if (req.user.role !== 'product_manager') {
+    return res.status(403).json({ message: 'Access denied. You must be a product manager.' });
+  }
+  next();
 };
