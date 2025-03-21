@@ -4,11 +4,6 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret'; // Fallback for safety
 
-const getRoleByEmail = (email) => {
-  if (email === 'sales_manager@example.com') return 'sales_manager';
-  if (email === 'product_manager@example.com') return 'product_manager';
-  return 'user';
-};
 // Hash password
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
@@ -16,8 +11,13 @@ const hashPassword = async (password) => {
 };
 
 // Generate JWT token
+// ??????????????????
 const generateToken = (user) => {
-  return jwt.sign({ username: user.username, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+  return jwt.sign(
+    { username: user.username, email: user.email, role: user.role }, 
+    JWT_SECRET,
+    { expiresIn: '1h' }
+  );
 };
 
 export const registerUser = async ({ name, username, email, password }) => {
@@ -28,16 +28,17 @@ export const registerUser = async ({ name, username, email, password }) => {
   if (existingEmail) throw new Error('Email already in use');
 
   const hashedPassword = await hashPassword(password);
-  const role = getRoleByEmail(email);
-  const newUser = await createUser({ name, username, email, password: hashedPassword, role });
-  return { ...newUser, token: generateToken( ...newUser, role) };
+  const newUser = await createUser({ name, username, email, password: hashedPassword });
+  
+  // Fetch the full user object with role (or set a default role)
+  const fullUser = await findByUsername(username); // This will include role via checkRole
+  return { ...fullUser, token: generateToken(fullUser) };
 };
 
 export const loginUser = async ({ email, password }) => {
-  const user = await findByEmail(email);
+  const user = await findByEmail(email); // Fetch user by email and determine their role
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new Error('Invalid email or password');
   }
-  const role = getRoleByEmail(email);
-  return { ...user, role, token: generateToken({ ...user, role}) };
+  return { ...user, token: generateToken(user) }; // user.role is included here
 };

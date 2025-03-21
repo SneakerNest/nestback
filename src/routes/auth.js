@@ -1,22 +1,22 @@
 import { Router } from 'express';
 import { register, login, listUsers } from '../controllers/authController.js'; 
-import { validateRegistration, verifyToken } from '../middleware/validate.js';
-import { verifyRole } from '../middleware/role.js';
+import { validateRegistration, verifyToken, isSalesManager, isProductManager } from '../middleware/validate.js';
 
 const router = Router();
 
 router.post('/register', validateRegistration, register);
 router.post('/login', login);
-router.get('/', verifyToken, verifyRole(['user', 'sales_manager', 'product_manager']), listUsers); 
+router.get('/', listUsers); 
 
-// Example of a protected route for sales managers
-router.get('/sales', verifyToken, verifyRole(['sales_manager']), (req, res) => {
-    res.json({ message: 'Welcome Sales Manager' });
+// Example of role-based access control
+router.get('/sales-manager-data', verifyToken, isSalesManager, (req, res) => {
+    // Only sales managers can access this route
+    res.json({ message: 'Sales manager data' });
 });
-
-// Example of a protected route for product managers
-router.get('/products', verifyToken, verifyRole(['product_manager']), (req, res) => {
-    res.json({ message: 'Welcome Product Manager' });
+  
+router.get('/product-manager-data', verifyToken, isProductManager, (req, res) => {
+    // Only product managers can access this route
+    res.json({ message: 'Product manager data' });
 });
 
 export default router;

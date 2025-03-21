@@ -6,13 +6,14 @@ import { connectToDatabase } from './config/database.js';
 import cors from 'cors'; 
 
 const app = express();
-
+console.log('NODE_DOCKER_PORT:', process.env.NODE_DOCKER_PORT);
 // Middleware
 app.use(cors());
  // Allow frontend requests
 app.use(express.json()); 
+
 // Routes
-app.use('/api/v1/users', appRouter);
+app.use('/api/v1/users', appRouter); 
 
 // Define the port
 const PORT = process.env.NODE_DOCKER_PORT||3000;
@@ -21,7 +22,7 @@ const PORT = process.env.NODE_DOCKER_PORT||3000;
 connectToDatabase()
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
-            console.log(`Server running on Docker Port ${PORT}`);
+            console.log(`Server running on port ${PORT}`);
         });
     })
     .catch((err) => {
