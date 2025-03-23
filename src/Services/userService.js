@@ -1,4 +1,5 @@
 import { findByEmail, findByUsername, createUser } from '../db/queries.js';
+import { executeQuery } from '../db/queries.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -29,11 +30,17 @@ export const registerUser = async ({ name, username, email, password }) => {
 
   const hashedPassword = await hashPassword(password);
   const newUser = await createUser({ name, username, email, password: hashedPassword });
-  
+
+  if (email.includes('@productmanager')) {
+    await executeQuery('INSERT INTO ProductManager (username) VALUES (?)', [username]);
+  } else if (email.includes('@salesmanager')) {
+    await executeQuery('INSERT INTO SalesManager (username) VALUES (?)', [username]);
+  }
   // Fetch the full user object with role (or set a default role)
   const fullUser = await findByUsername(username); // This will include role via checkRole
   return { ...fullUser, token: generateToken(fullUser) };
 };
+
 
 export const loginUser = async ({ email, password }) => {
   const user = await findByEmail(email); // Fetch user by email and determine their role

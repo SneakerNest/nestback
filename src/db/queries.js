@@ -2,7 +2,7 @@
 import { pool } from '../config/database.js';
 
 // Helper to execute queries safely
-const executeQuery = async (query, params = []) => {
+export const executeQuery = async (query, params = []) => {
   let connection;
   try {
     connection = await pool.getConnection();

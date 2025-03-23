@@ -54,32 +54,40 @@ docker-compose up
 This will build the Docker images and start the containers. The backend server will be running on port 3000 (mapped to 5001 on your local machine), and the MySQL database will be running on port 3306.
 
 ## Database Setup
+follow these steps (first time or new table has been added):
 
 ### Initial Setup
 
-For the first time setup or whenever a new table is created, follow these steps:
-
-Access the MySQL container
-
 Run the following command to access the MySQL container:
 ```bash
-docker exec -it [name_of_db_container] mysql -u root -p
+cd <db folder>
+```
+
+### Setup Tables and populate it with data 
+
+run the following SQL command:
+```sql
+docker exec -it [name_of_db_container] mysql -u root -p < setup.sql
+docker exec -it [name_of_db_container] mysql -u root -p < sampleData.sql
+docker exec -it [name_of_db_container] mysql -u root -p < reset.sql
 ```
 
 Replace [name_of_db_container] with the name of your MySQL container. You will be prompted to enter the MySQL root password.
 
-### Create the necessary tables
-
-For example, to create the USERS table, run the following SQL command:
-```sql
-CREATE TABLE USERS (
-    name VARCHAR(255) NOT NULL,
-    username VARCHAR(255) NOT NULL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL
-);
-```
 Ensure that the table is created in the sneaker_nest database.
+
+To make sure of the tables and everything: 
+
+```sql
+docker exec -it [name_of_db_container] mysql -u root -p
+USE sneaker_nest;
+SHOW TABLES;
+```
+To check the data (example):
+
+```sql
+SELECT * FROM USERS;
+```
 
 ## Testing 
 
