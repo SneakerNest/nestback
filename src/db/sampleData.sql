@@ -2,25 +2,31 @@
 
 USE `sneaker_nest`;
 
-/* -- User Table */
-/*-- Inserting 6 users (2 Product Managers, 2 Sales Managers, and 3 Customers)*/
-insert into `USERS` (`name`, `email`, `username`, `password`) values
-('Alice Johnson', 'alice.product@company.com', 'alicejohnson', '$2b$12$EGE5qYOuRRHhMujtiaAq/emPDYdnTip.wRFWevb56Yn1fyT.X.eZK'), /*password: AJ123*/
-('Bob Smith', 'bob.product@company.com', 'bobsmith', '$2b$12$XazL/WqkSUkcKc9eVNBbqeWEsDmiJjSEUER/ojrgMJPpX8NT.dXCu'), /*password: BS123*/
+/*-- Main Categories*/
+INSERT INTO Category (name, description) VALUES
+('Sneakers', 'Comfortable and stylish footwear made for everyday wear, blending performance with street-ready looks.'),
+('Casual', 'Easygoing and versatile pieces designed for daily comfort and effortless style.'),
+('Boots', 'Durable and bold footwear built for all conditions, from urban streets to rugged paths.'),
+('SlippersSandals', 'Lightweight and breathable options ideal for warm weather, home, or relaxed outings.'),
 
-('Charlie Brown', 'charlie.sales@company.com', 'charliebrown', '$2b$12$B23U7bCQBQgH48XYdMXAw.mbKvbI/xPS2WrDc6fK3V74uxfXdMgWG'), /*password: CB123*/
-('David Williams', 'david.sales@company.com', 'davidwilliams', '$2b$12$pTJ2KOQlyXFEJkcV8RnL6OlWVvl.xekWmt1GkZG29QIWJ6ZGvsvmq'), /*password: DW123*/
+/*-- Subcategories for Sneakers*/
+INSERT INTO Category (name, description, parentCategoryID, image) VALUES
+('Converse Red', 'Classic canvas low-tops with a bold red finish and timeless street style.', 1, 'conversered.jpg'),
+('Dunk Purple', 'A striking mix of purple and red suede on a skate-inspired Nike silhouette.', 1, 'dunkpurple.jpg'),
+('Samba Black', 'An iconic Adidas design with black leather, white stripes, and gum sole heritage.', 1, 'sambablack.jpg'),
 
-('Guanghui', 'guanghui.ma@sabanciuniv.edu', 'guang', '$2b$12$toNVmS8LZn2OrEI5nS23x.lLBQmjK89s3mgTb0LnSszoN37y6uSrG'), /*password: guang*/
-('Frank Miller', 'frank.miller@yahoo.com', 'frankmiller', '$2b$12$4ttyt.gmQi6Ov3sG4TbI2ulaeDfcA7PaudhIcVyNi/oNRQR0zKFky'), /*password: FM123*/
-('Eve Green', 'eve.green@gmail.com', 'evegreen', '$2b$12$4Awi28tlIbNQ2nt15DDAZ.WJdxHPGXpaS7X6Z/1Lxm5ojBQxK2LYO'); /*password: EG123*/
+/*-- Subcategories for Casual*/
+/*-- INSERT INTO Category (name, description, parentCategoryID, image) VALUES */
 
-/*ProductManager Table*/
-insert into `ProductManager` (`username`) values
-('alicejohnson'), /* Assuming supplierID 1 for Alice Johnson */
-('bobsmith'); /* Assuming supplierID 2 for Bob Smith */
 
-/*SalesManager Table*/
-insert into `SalesManager` (`username`) values
-('charliebrown'),
-('davidwilliams');
+/*-- Subcategories for Boots*/
+/*-- INSERT INTO Category (name, description, parentCategoryID, image) VALUES */
+
+
+
+/*-- Subcategories for SlippersSandals*/
+INSERT INTO Category (name, description, parentCategoryID, image) VALUES
+('Birkenstock Arizona Black', 'Minimalist comfort meets iconic style with adjustable straps and cork support.', 4, 'birkenstockarizonablack.jpg'),
+('Crocs Blue', 'Lightweight, waterproof clogs in a playful blue shade for all-day wear.', 4, 'crocsblue.jpg'),
+('Yeezy Slide Black', 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 4, 'yeezyslideblack.jpg'),
+
