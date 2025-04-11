@@ -78,26 +78,27 @@ create table if not exists `CategoryCategorizesProduct` (
 	foreign key (`productID`) references `Product` (`productID`) on delete cascade
 );
 
-create table if not exists USERS (
+create table if not exists `USERS` (
     `name` VARCHAR(255) NOT NULL,
     `username` VARCHAR(255) NOT NULL PRIMARY KEY,
     `email` VARCHAR(255) NOT NULL UNIQUE,
     `password` VARCHAR(255) NOT NULL
 );
 
-create table if not exists ProductManager (
+create table if not exists `ProductManager` (
 	`username` varchar(64) NOT NULL unique,
 	`supplierID` int NOT NULL,
 	PRIMARY KEY (`username`),
-	FOREIGN KEY (`username`) REFERENCES USERS(`username`) on delete cascade
+	FOREIGN KEY (`username`) REFERENCES USERS(`username`) on delete cascade,
 	FOREIGN KEY (`supplierID`) REFERENCES Supplier(`supplierID`) on delete cascade
 );
 
-create table if not exists SalesManager (
+create table if not exists `SalesManager` (
 	`username` varchar(64) NOT NULL unique,
 	`supplierID` int NOT NULL,
 	PRIMARY KEY (`username`),
-	FOREIGN KEY (`username`) REFERENCES USERS(`username`) on delete cascade
+	FOREIGN KEY (`username`) REFERENCES USERS(`username`) on delete cascade,
+	FOREIGN KEY (`supplierID`) REFERENCES Supplier(`supplierID`) on delete cascade
 );
 
 create table if not exists `Customer` (
