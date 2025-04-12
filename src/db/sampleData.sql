@@ -16,13 +16,14 @@ INSERT INTO Category (name, description, parentCategoryID, image) VALUES
 ('Adidas', 'An iconic Adidas design with gum sole heritage.', 1, 'sambablack.jpg');
 
 /*-- Subcategories for Casual*/
-/*-- INSERT INTO Category (name, description, parentCategoryID, image) VALUES */
-
+INSERT INTO Category (name, description, parentCategoryID, image) VALUES
+('Airforce', 'An iconic basketball-inspired sneaker, the Nike Air Force 1 has become a mainstay in casual footwear. Known for its clean design and versatility.', 2, 'Nikeairforceblack.jpeg'),
+('Superstar', 'A classic shoe that has been a favorite for decades, known for its shell toe and timeless design, combining street style with comfort.', 2, 'Superstarblack.jpeg');
 
 /*-- Subcategories for Boots*/
-/*-- INSERT INTO Category (name, description, parentCategoryID, image) VALUES */
-
-
+INSERT INTO Category (name, description, parentCategoryID, image) VALUES
+('Drmartens', 'The 1460 boot is a legendary model from Dr. Martens, known for its durability, comfort, and iconic yellow stitching.', 3, 'Drmartensblack.jpeg'),
+('Timberland', 'Known for their durability and high-quality construction, Timberland’s 6-inch premium boots are often associated with workwear but are also a fashionable option for casual wear.', 3, 'Timberlandproblack.jpeg');
 
 /*-- Subcategories for SlippersSandals*/
 INSERT INTO Category (name, description, parentCategoryID, image) VALUES
@@ -100,6 +101,32 @@ VALUES
 (40, 'Yeezy Slide', 119.99, 0, 15, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'Yeezy', 1, 'EVA Foam', 6, 'SN-YS-BRN', 78, 'Brown'),
 (25, 'Yeezy Slide', 119.99, 0, 15, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'Yeezy', 1, 'EVA Foam', 6, 'SN-YS-NVY', 72, 'Navy');
 
+/*-- Products for Airforce */
+INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
+VALUES
+(50, 'Air Force 1 White', 99.99, 0, 10, 'A classic and timeless sneaker that combines style and comfort with a clean, all-white design.', 'Airforce', 1, 'Leather', 12, 'SN-AF1-WHT', 95, 'Red'),
+(40, 'Air Force 1 Navy', 99.99, 0, 10, 'A classic and timeless sneaker that combines style and comfort with a sleek, all-black design.', 'Airforce', 1, 'Leather', 12, 'SN-AF1-NAVY', 85, 'Navy'),
+(45, 'Air Force 1 Black', 99.99, 0, 12, 'A classic and timeless sneaker that combines style and comfort with a sleek, all-black design.', 'Airforce', 1, 'Leather', 12, 'SN-AF1-BLK', 90, 'Black');
+
+/*-- Products for Superstar */
+INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
+VALUES
+(50, 'Superstar White', 89.99, 0, 10, 'A classic sneaker with a timeless design featuring a shell toe and three stripes.', 'Superstar', 1, 'Leather', 12, 'SN-SP-WHT', 92, 'White'),
+(40, 'Superstar Black', 89.99, 0, 10, 'A classic sneaker with a timeless design featuring a shell toe and three stripes.', 'Superstar', 1, 'Leather', 12, 'SN-SP-BLK', 88, 'Black'),
+(45, 'Superstar Red', 89.99, 0, 12, 'A classic sneaker with a timeless design featuring a shell toe and three stripes.', 'Superstar', 1, 'Leather', 12, 'SN-SP-RED', 85, 'Red');
+
+/*-- Products for Drmartens */
+INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
+VALUES
+(50, 'Dr. Martens 1460 Black', 149.99, 0, 10, 'The iconic 1460 boot with a classic black finish and yellow stitching.', 'Drmartens', 1, 'Leather', 12, 'SN-DM-BLK', 95, 'Black'),
+(40, 'Dr. Martens 1460 White', 149.99, 0, 10, 'The iconic 1460 boot with a classic brown finish and yellow stitching.', 'Drmartens', 1, 'Leather', 12, 'SN-DM-BRN', 90, 'White');
+
+/*-- Products for Timberland */
+INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
+VALUES
+(50, 'Timberland 6-Inch Premium Black', 199.99, 0, 10, 'The classic Timberland boot with premium leather and waterproof construction.', 'Timberland', 1, 'Leather', 12, 'SN-TB-BLK', 98, 'Black'),
+(40, 'Timberland 6-Inch Premium Brown', 199.99, 0, 10, 'The classic Timberland boot with premium leather and waterproof construction.', 'Timberland', 1, 'Leather', 12, 'SN-TB-BRN', 95, 'Grey'),
+(45, 'Timberland 6-Inch Premium Tan', 199.99, 0, 12, 'The classic Timberland boot with premium leather and waterproof construction.', 'Timberland', 1, 'Leather', 12, 'SN-TB-TAN', 90, 'White');
 
 /*-- Pictures Table*/
 /* Inserting three pictures for each productID*/
@@ -175,8 +202,31 @@ INSERT INTO Pictures (productID, picturePath) VALUES
 (23, 'yeezyslidebrown.jpg'),
 
 
-(24, 'yeezyslidenavy.jpg');
+(24, 'yeezyslidenavy.jpg'),
 
+/*-- Casual*/
+(25, 'Nikeairforcewhite.jpeg'),
+
+(26, 'Nikeairforceblack.jpeg'),
+
+(27, 'Nikeairforcenavy.jpeg'),
+
+(28, 'Superstarwhite.jpeg'),
+
+(29, 'Superstarblack.jpeg'),
+
+(30, 'Superstarred.jpeg'),
+
+/*-- Boots*/
+(31, 'Drmartensblack.jpeg'),
+
+(32, 'Drmartenswhite.jpeg'),
+
+(33, 'Timberlandproblack.jpeg'),
+
+(34, 'Timberlandprogrey.jpeg'),
+
+(35, 'Timberlandprowhite.jpeg');
 
 /*-- CategoryCategorizesProduct Table */
 /* Inserting the categories for each productID */
@@ -195,6 +245,22 @@ INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
 -- Adidas / Sambas (productID 9–12)
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
 (7, 9), (7, 10), (7, 11), (7, 12);
+
+-- Airforce Products (productID 25–27)
+INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
+(11, 25), (11, 26), (11, 27);
+
+-- Superstar Products (productID 28–30)
+INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
+(12, 28), (12, 29), (12, 30); 
+
+-- Drmartens Products (productID 31–32)
+INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
+(13, 31), (13, 32);
+
+-- Timberland Products (productID 33–35)
+INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
+(14, 33), (14, 34), (14, 35); 
 
 -- Birkenstock (productID 13–16)
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
@@ -374,6 +440,7 @@ INSERT INTO `Review` (`reviewContent`, `reviewStars`, `customerID`, `productID`,
 -- Yeezy Reviews
 ('These slides are insanely comfortable!', 5, 2, 21, 'bobsmith', 1),
 ('Not worth the hype in my opinion.', 2, 3, 24, 'alicejohnson', 2);
+
 
 
 

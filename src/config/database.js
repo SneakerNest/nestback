@@ -1,4 +1,4 @@
-import mysql from 'mysql2/promise';
+import mysql from 'mysql2'; // Ensure you are importing mysql2 correctly
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,12 +14,15 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
+// Make sure you are using the promise-based API
+const promisePool = pool.promise();
+
 const connectToDatabase = async () => {
     const MAX_RETRIES = 10;
     const RETRY_DELAY = 5000; 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            const connection = await pool.getConnection();
+            const connection = await promisePool.getConnection();
             console.log('✅ Connected to MySQL in Docker');
             connection.release();
             return; // Success, exit the function
@@ -34,4 +37,4 @@ const connectToDatabase = async () => {
     }
 };
 
-export { pool, connectToDatabase };
+export { promisePool as pool, connectToDatabase };
