@@ -17,6 +17,7 @@ export const addCartItem = async (req, res) => {
       productID,
       quantity
     );
+    console.log('customerID from token:', req.user.customerID);
     res.json({ cart });
   } catch (err) {
     res.status(400).json({ message: err.message });

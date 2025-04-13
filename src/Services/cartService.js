@@ -1,18 +1,9 @@
 import { executeQuery } from '../db/executeQuery.js';
 
-/**
- * Retrieves the cart for a given customer.
- * If no cart exists, a new one is created.
- *
- * @param {number} customerID - The ID of the customer.
- * @returns {Object} The cart object including its items.
- */
+// Retrieves the cart for a given customer. If no cart exists, a new one is created.
 export const fetchCart = async (customerID) => {
   // Look for an existing cart for this customer
-  let carts = await executeQuery(
-    "SELECT * FROM Cart WHERE customerID = ?",
-    [customerID]
-  );
+  let carts = await executeQuery("SELECT * FROM Cart WHERE customerID = ?", [customerID]);
 
   // If no cart exists, create one (set temporary to false for a logged-in user)
   if (carts.length === 0) {
@@ -21,10 +12,7 @@ export const fetchCart = async (customerID) => {
       [customerID]
     );
     // result.insertId is the newly created cart ID
-    carts = await executeQuery(
-      "SELECT * FROM Cart WHERE cartID = ?",
-      [result.insertId]
-    );
+    carts = await executeQuery("SELECT * FROM Cart WHERE cartID = ?", [result.insertId]);
   }
 
   const cart = carts[0];
@@ -41,14 +29,7 @@ export const fetchCart = async (customerID) => {
   return { ...cart, items };
 };
 
-/**
- * Adds a product (or increases its quantity) to the customer's cart.
- *
- * @param {number} customerID - The customer ID.
- * @param {number} productID - The product ID to add.
- * @param {number} quantity - The quantity to add.
- * @returns {Object} The updated cart.
- */
+// Adds a product to the customer's cart or updates the quantity if it already exists.
 export const addToCart = async (customerID, productID, quantity) => {
   // Retrieve (or create) the customer's cart
   const cartData = await fetchCart(customerID);
@@ -76,17 +57,10 @@ export const addToCart = async (customerID, productID, quantity) => {
 
   // After adding/updating, recalculate the cart totals.
   await updateCartTotals(cartID);
-  // Return the updated cart.
   return await fetchCart(customerID);
 };
 
-/**
- * Removes a product from the customer's cart.
- *
- * @param {number} customerID - The customer ID.
- * @param {number} productID - The product ID to remove.
- * @returns {Object} The updated cart.
- */
+// Removes a product from the customer's cart.
 export const deleteCartItem = async (customerID, productID) => {
   const cartData = await fetchCart(customerID);
   const cartID = cartData.cartID;
@@ -102,12 +76,7 @@ export const deleteCartItem = async (customerID, productID) => {
   return await fetchCart(customerID);
 };
 
-/**
- * Helper function to recalculate and update total price and total item count
- * for a given cart.
- *
- * @param {number} cartID - The cart ID.
- */
+// Helper function to recalculate and update total price and total item count for a given cart.
 const updateCartTotals = async (cartID) => {
   // Retrieve all items in the cart along with each product's unit price.
   const items = await executeQuery(
