@@ -1,7 +1,7 @@
-import { findByEmail, findByUsername, createUser } from '../db/queries.js';
-import { executeQuery } from '../db/queries.js';
+import { findByEmail, findByUsername, createUser } from '../db/userQueries.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { executeQuery } from '../db/executeQuery.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret'; // Fallback for safety
 
@@ -12,14 +12,19 @@ const hashPassword = async (password) => {
 };
 
 // Generate JWT token
-// ??????????????????
 const generateToken = (user) => {
   return jwt.sign(
-    { username: user.username, email: user.email, role: user.role }, 
+    {
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      customerID: user.customerID || null  // include if available
+    },
     JWT_SECRET,
     { expiresIn: '1h' }
   );
 };
+
 
 export const registerUser = async ({ name, username, email, password }) => {
   const existingUser = await findByUsername(username);
@@ -31,21 +36,28 @@ export const registerUser = async ({ name, username, email, password }) => {
   const hashedPassword = await hashPassword(password);
   const newUser = await createUser({ name, username, email, password: hashedPassword });
 
-  if (email.includes('@productmanager')) {
-    await executeQuery('INSERT INTO ProductManager (username) VALUES (?)', [username]);
-  } else if (email.includes('@salesmanager')) {
-    await executeQuery('INSERT INTO SalesManager (username) VALUES (?)', [username]);
-  }
-  // Fetch the full user object with role (or set a default role)
-  const fullUser = await findByUsername(username); // This will include role via checkRole
+  const fullUser = await findByUsername(username);
   return { ...fullUser, token: generateToken(fullUser) };
 };
 
-
-export const loginUser = async ({ email, password }) => {
-  const user = await findByEmail(email); // Fetch user by email and determine their role
+const loginUser = async ({ email, password }) => {
+  const user = await findByEmail(email);
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new Error('Invalid email or password');
   }
-  return { ...user, token: generateToken(user) }; // user.role is included here
+
+  // Get customerID if this user is a customer
+  const customer = await executeQuery(
+    'SELECT customerID FROM Customer WHERE username = ?',
+    [user.username]
+  );
+
+  const customerID = customer[0]?.customerID || null;
+
+  return {
+    ...user,
+    customerID,
+    token: generateToken({ ...user, customerID })
+  };
 };
+export { loginUser };

@@ -134,8 +134,8 @@ create table if not exists `BillingInfo` (
     	`billingID` int not null auto_increment unique,
     	`customerID` int not null,
     	`creditCardNo` varchar(64) not null, /* Encrypt credit card number using SHA256 */
-    	`creditCardEXP` varchar(5) not null, /* Enforced format mm/yy */
-    	/* no CVV cuz it's prohibited by PCI DSS */
+    	`creditCardEXP` varchar(5) not null, /* Enforced format mm/yy */,
+    	/*no CVV cuz its prohibited by PCI DSS */,
 	`addressID` int not null,
     	primary key (`billingID`),
     	foreign key (`customerID`) references Customer(`customerID`) on delete cascade,

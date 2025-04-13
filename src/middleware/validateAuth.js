@@ -1,5 +1,6 @@
 import { body, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
 
 // Registration validation rules
@@ -27,7 +28,6 @@ export const verifyToken = (req, res, next) => {
     res.status(401).json({ message: 'Invalid token' });
   }
 };
-
 
 // Middleware to verify if the user is a sales manager
 export const isSalesManager = (req, res, next) => {
