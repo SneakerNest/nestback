@@ -101,6 +101,30 @@ create table if not exists `SalesManager` (
 	FOREIGN KEY (`supplierID`) REFERENCES Supplier(`supplierID`) on delete cascade
 );
 
+create table if not exists `Courier` (
+	`courierID` int NOT NULL AUTO_INCREMENT unique,
+	`name` varchar(64) not null,
+	`phone` BIGINT NOT NULL, /* insert with country code, convert + to 00 */
+	`email` varchar(64) NOT NULL,
+	`timeJoined` timestamp not null default CURRENT_TIMESTAMP,
+	`capacity` int default 0,
+	`addressID` int NOT NULL,
+	PRIMARY KEY (`courierID`),
+	FOREIGN KEY (`addressID`) REFERENCES `Address`(`addressID`) ON DELETE RESTRICT,
+	CONSTRAINT `chk_valid_email_courier` CHECK (`email` LIKE '%_@__%.__%')
+);
+
+create table if not exists `ProdManagerContactsCourier` (
+    `deliveryAddressID` int NOT NULL,
+    `capacityPoints` int NOT NULL,
+    `productManagerUsername` varchar(64) not null,
+    `courierID` int NOT NULL,
+    primary key (`courierID`, `productManagerUsername`),
+    FOREIGN KEY (`deliveryAddressID`) REFERENCES `Address`(`addressID`) ON DELETE RESTRICT,
+    foreign key (`courierID`) references `Courier`(`courierID`) on delete restrict,
+    foreign key (`productManagerUsername`) references `ProductManager`(`username`) on delete restrict
+);
+
 create table if not exists `Customer` (
     `customerID` int not null auto_increment unique,
     `username` varchar(64) not null,
@@ -144,6 +168,24 @@ create table if not exists `BillingInfo` (
 	check (LENGTH(`creditCardNo`) >= 60 )
 );
 
+create table if not exists `DeliveryRegion` (
+    `regionID` int NOT NULL AUTO_INCREMENT,
+    `name` varchar(64) NOT NULL,
+    `population` int,
+    `SEIFA` int,
+    PRIMARY KEY (`regionID`)
+);
+
+create table if not exists `CourierDeliversToDeliveryRegion` (
+    `courierID` int NOT NULL,
+    `regionID` int NOT NULL,
+    `deliveryCost` int NOT NULL,
+    PRIMARY KEY (`courierID`, `regionID`),
+    FOREIGN KEY (`courierID`) REFERENCES `Courier`(`courierID`) ON DELETE CASCADE,
+    FOREIGN KEY (`regionID`) REFERENCES `DeliveryRegion`(`regionID`) ON DELETE CASCADE
+);
+
+
 create table if not exists `Cart` (
 	`cartID` int NOT NULL AUTO_INCREMENT unique,
 	`totalPrice` decimal(8,2) NOT NULL default 0,
@@ -163,6 +205,36 @@ create table if not exists `CartContainsProduct` (
 	PRIMARY KEY (`cartID`, `productID`),
 	FOREIGN KEY (`cartID`) REFERENCES `Cart`(`cartID`) ON DELETE CASCADE,
 	FOREIGN KEY (`productID`) REFERENCES `Product`(`productID`) ON DELETE CASCADE
+);
+
+create table if not exists `Order` (
+	`orderID` int NOT NULL AUTO_INCREMENT unique,
+	`orderNumber` int NOT NULL,
+	`timeOrdered` timestamp not null default CURRENT_TIMESTAMP,
+	`totalPrice` decimal (8,2) NOT NULL,
+	/* Delivers relationship */
+	`deliveryID` int NOT NULL unique,
+	`deliveryStatus` varchar(64),
+	`deliveryAddressID` int NOT NULL,
+	`estimatedArrival` date,
+	`courierID` int,
+	/* Customer,Cart makesAn Order relationship */
+	`cartID` int, /*this is redundant, left here to not break anything */
+	`customerID` int NOT NULL,
+	PRIMARY KEY (`orderID`),
+	FOREIGN KEY (`deliveryAddressID`) REFERENCES `Address`(`addressID`) ON DELETE RESTRICT,
+	FOREIGN KEY (`courierID`) REFERENCES `Courier`(`courierID`) ON DELETE RESTRICT,
+	FOREIGN KEY (`customerID`) REFERENCES `Customer`(`customerID`) ON DELETE RESTRICT
+);
+
+create table if not exists `OrderOrderItemsProduct` (
+	`orderID` int NOT NULL,
+	`productID` int NOT NULL,
+	`quantity` int NOT NULL,
+	`purchasePrice` decimal(8,2) NOT NULL,
+	PRIMARY KEY (`orderID`, `productID`),
+	FOREIGN KEY (`orderID`) REFERENCES `Order`(`orderID`) ON DELETE CASCADE,
+	FOREIGN KEY (`productID`) REFERENCES `Product`(`productID`) ON DELETE restrict 
 );
 
 create table if not exists `ProdManagerCreatesCategory` (
@@ -213,5 +285,46 @@ create table if not exists `Review` (
 	CHECK (`reviewStars` BETWEEN 1 AND 5)
 );
 
+create table if not exists `Returns` (
+	`requestID` INT NOT NULL AUTO_INCREMENT unique,
+	`returnStatus` VARCHAR(64) NOT NULL,
+	`reason` TEXT,
+	/* ReturnMustBeOrder relationship */
+	`orderID` INT NOT NULL,
+	`productID` INT NOT NULL,
+	`quantity` INT not null,
+	/* CustomerRequestsAReturn relationship */
+	`customerID` INT NOT NULL,
+	primary key(`requestID`),
+	foreign key(`orderID`) references `Order`(`orderID`) on delete restrict,
+	foreign key(`customerID`) references `Customer`(`customerID`) on delete no action,
+	foreign key(`productID`) references `Product`(`productID`) on delete no action
+	/* product cannot refer to OrderOrderItemsProduct since Product isn't a primary key */
+	/* There is a trigger to check whether the orderID-productID pair exists */
+);
+
+create table if not exists `SalesManagerApprovesRefundReturn` (
+	`requestID` int not null,
+	`salesManagerUsername` VARCHAR(64),
+	`approvalStatus` varchar(64) not null,
+	foreign key(`requestID`) references `Returns`(`requestID`) on delete cascade,
+	foreign key(`salesManagerUsername`) references `SalesManager`(`username`) on delete restrict,
+	primary key(`requestID`)
+);
 
 DELIMITER //
+
+
+
+/* trigger for updating the stock of a product when a restock is logged */
+create trigger update_stock_product
+after insert on ProductManagerRestocksProduct
+for each row
+begin
+	update Product
+	set stock = stock + new.quantity
+	where productID = new.productID;
+end; //
+
+
+DELIMITER ;

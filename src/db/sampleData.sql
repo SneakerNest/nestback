@@ -45,6 +45,11 @@ INSERT INTO Address (addressTitle, streetAddress, city, province, zipCode, count
 ('Customer 2 Billing 1', 'Barbaros Bulvarı No:55', 'Beşiktaş', 'İstanbul', '34353', 'Turkey', 29.0144, 41.0445),
 ('Customer 3 Billing 1', 'Mithatpaşa Caddesi No:88', 'Konak', 'İzmir', '35280', 'Turkey', 27.1313, 38.4037);
 
+/*-- Address entries for couriers*/
+INSERT INTO Address (addressTitle, streetAddress, city, province, zipCode, country, longitude, latitude) VALUES
+('Courier 1 Depot', 'Halaskargazi Caddesi No:20', 'Şişli', 'İstanbul', '34360', 'Turkey', 28.9894, 41.0595), /*-- Courier 1 (unique address in Istanbul)*/
+('Courier 2 Depot', 'Etiler Mahallesi, Nispetiye Caddesi No:85', 'Beşiktaş', 'İstanbul', '34330', 'Turkey', NULL, NULL); /*-- Courier 2 (same city, different area)*/
+
 /*-- Address entry for supplier*/
 INSERT INTO Address (addressTitle, streetAddress, city, province, zipCode, country, longitude, latitude) VALUES
 ('Supplier Warehouse', 'Organize Sanayi Bölgesi No:31', 'Başakşehir', 'İstanbul', '34490', 'Turkey', 28.7500, 41.0939);
@@ -306,6 +311,17 @@ insert into `SalesManager` (`username`, `supplierID`) values
 ('charliebrown', 1),
 ('davidwilliams', 1);
 
+/*-- Courier Table*/
+INSERT INTO `Courier` (`name`, `phone`, `email`, `capacity`, `addressID`) VALUES
+('Fast Express', 904500123456, 'contact@fastexpress.com', 3000, 7),
+('Speedy Delivery', 904600789012, 'info@speedydelivery.com', 3500, 8);
+
+/* ProductManagerContactsCourier Table */
+INSERT INTO `ProdManagerContactsCourier` (`deliveryAddressID`, `capacityPoints`, `productManagerUsername`, `courierID`) VALUES
+(7, 50, 'alicejohnson', 1),
+(7, 60, 'bobsmith', 1),
+(8, 75, 'alicejohnson', 2),
+(8, 80, 'bobsmith', 2);
 
 /* Customer Table */
 insert into `Customer` (`username`, `addressID`, `phone`, `taxID`) values 
@@ -332,7 +348,30 @@ INSERT INTO `BillingInfo` (`customerID`, `creditCardNo`, `creditCardEXP`, `addre
 (2, SHA2('5500000000000004', 256), '11/25', 5),
 (3, SHA2('340000000000009', 256), '10/25', 6);
 
+/*DeliveryRegion Table*/
+INSERT INTO `DeliveryRegion` (`name`, `population`, `SEIFA`) VALUES
+('Beşiktaş', 200000, 110),
+('Kadıköy', 450000, 120),
+('Şişli', 300000, 130),
+('Üsküdar', 350000, 140),
+('Fatih', 400000, 150),
+('Bakırköy', 250000, 160),
+('Beyoğlu', 250000, 170);
 
+/*CourierDeliversToDeliveryRegion Table*/
+INSERT INTO `CourierDeliversToDeliveryRegion` (`courierID`, `regionID`, `deliveryCost`) VALUES
+(1, 1, 100),
+(1, 2, 150),
+(1, 3, 200),
+(1, 5, 300),
+(1, 6, 350),
+(2, 1, 120),
+(2, 2, 170),
+(2, 3, 220),
+(2, 4, 270),
+(2, 5, 320),
+(2, 6, 370),
+(2, 7, 420);
 
 /*-- Cart Table (3 examples: 2 tied to customers, 1 temporary) */
 INSERT INTO `Cart` (`totalPrice`, `numProducts`, `fingerprint`, `temporary`, `customerID`) VALUES
@@ -355,6 +394,116 @@ INSERT INTO `CartContainsProduct` (`cartID`, `productID`, `quantity`) VALUES
 
 -- Cart 3 (birkyTemp - Temporary Guest Cart)
 (3, 13, 1);  -- Birkenstock Arizona Black (129.99)
+
+/*Sample values for graph*/
+INSERT INTO `Order` (`orderNumber`, `totalPrice`, `deliveryID`, `deliveryStatus`, `deliveryAddressID`, `estimatedArrival`, `courierID`, `customerID`, `timeOrdered`) VALUES
+(1001, 234.97, 123134, 'Delivered', 4, '2023-12-10', 1, 1, '2023-12-05 14:30:00'),
+(1002, 580.97, 324234, 'Delivered', 5, '2023-12-02', 2, 2, '2023-11-25 10:15:00'),
+(1003, 234.97, 123135, 'Delivered', 4, '2023-11-20', 1, 1, '2023-11-15 09:00:00'),
+(1004, 150.00, 324235, 'Delivered', 5, '2023-11-18', 2, 2, '2023-11-10 16:45:00'),
+(1005, 170.99, 123136, 'Delivered', 4, '2023-11-25', 1, 1, '2023-11-05 11:30:00'),
+(1006, 99.98, 324236, 'Delivered', 5, '2023-11-22', 2, 2, '2023-10-30 13:20:00'),
+(1007, 184.98, 123137, 'Delivered', 4, '2023-11-30', 1, 1, '2023-10-25 15:10:00'),
+(1008, 229.99, 324237, 'Delivered', 5, '2023-11-28', 2, 2, '2023-10-20 17:00:00'),
+(1009, 170.99, 123138, 'Delivered', 4, '2023-11-26', 1, 1, '2023-10-15 12:00:00'),
+(1010, 99.98, 324238, 'Delivered', 5, '2023-11-24', 2, 2, '2023-10-10 14:45:00'),
+(1011, 184.98, 123139, 'Delivered', 4, '2023-11-22', 1, 1, '2023-10-05 09:30:00'),
+(1012, 229.99, 324239, 'Delivered', 5, '2023-11-20', 2, 2, '2023-09-30 11:15:00'),
+(1013, 170.99, 123140, 'Delivered', 4, '2023-11-18', 1, 1, '2023-09-25 13:00:00'),
+(1014, 99.98, 324240, 'Delivered', 5, '2023-11-16', 2, 2, '2023-09-20 15:45:00'),
+(1015, 269.97, 123141, 'Delivered', 4, '2023-11-14', 1, 1, '2023-09-15 10:30:00'),
+(1016, 229.99, 324241, 'Delivered', 5, '2023-11-12', 2, 2, '2023-09-10 12:15:00'),
+(1017, 170.99, 123142, 'Delivered', 4, '2023-11-10', 1, 1, '2023-09-05 14:00:00'),
+(1018, 99.98, 324242, 'Delivered', 5, '2023-11-08', 2, 2, '2023-08-30 16:45:00'),
+(1019, 184.98, 123143, 'Delivered', 4, '2023-11-06', 1, 1, '2023-08-25 09:30:00'),
+(1020, 429.97, 324243, 'Delivered', 5, '2023-11-04', 2, 2, '2023-08-20 11:15:00'),
+(1021, 234.97, 123144, 'Delivered', 4, '2023-12-15', 1, 1, '2023-12-01 14:30:00'),
+(1022, 580.97, 324244, 'Delivered', 5, '2023-12-20', 2, 2, '2023-12-05 10:15:00'),
+(1023, 234.97, 123145, 'Delivered', 4, '2023-12-25', 1, 1, '2023-12-10 09:00:00'),
+(1024, 150.00, 324245, 'Delivered', 5, '2024-01-10', 2, 2, '2024-01-01 16:45:00'),
+(1025, 170.99, 123146, 'Delivered', 4, '2024-01-15', 1, 1, '2024-01-05 11:30:00'),
+(1026, 99.98, 324246, 'Delivered', 5, '2024-01-20', 2, 2, '2024-01-10 13:20:00'),
+(1027, 184.98, 123147, 'Delivered', 4, '2024-02-01', 1, 1, '2024-01-20 15:10:00'),
+(1028, 229.99, 324247, 'Delivered', 5, '2024-02-10', 2, 2, '2024-01-25 17:00:00'),
+(1029, 170.99, 123148, 'Delivered', 4, '2024-02-15', 1, 1, '2024-02-01 12:00:00'),
+(1030, 99.98, 324248, 'Delivered', 5, '2024-02-20', 2, 2, '2024-02-05 14:45:00'),
+(1031, 184.98, 123149, 'Delivered', 4, '2024-03-01', 1, 1, '2024-02-15 09:30:00'),
+(1032, 229.99, 324249, 'Delivered', 5, '2024-03-10', 2, 2, '2024-02-25 11:15:00'),
+(1033, 170.99, 123150, 'Delivered', 4, '2024-03-15', 1, 1, '2024-03-01 13:00:00'),
+(1034, 99.98, 324250, 'Delivered', 5, '2024-03-20', 2, 2, '2024-03-05 15:45:00'),
+(1035, 269.97, 123151, 'Delivered', 4, '2024-04-01', 1, 1, '2024-03-15 10:30:00'),
+(1036, 229.99, 324251, 'Delivered', 5, '2024-04-10', 2, 2, '2024-03-25 12:15:00'),
+(1037, 170.99, 123152, 'Delivered', 4, '2024-04-15', 1, 1, '2024-04-01 14:00:00'),
+(1038, 99.98, 324252, 'Delivered', 5, '2024-04-20', 2, 2, '2024-04-05 16:45:00'),
+(1039, 184.98, 123153, 'Delivered', 4, '2024-05-01', 1, 1, '2024-04-15 09:30:00'),
+(1040, 429.97, 324253, 'Delivered', 5, '2024-05-10', 2, 2, '2024-04-25 11:15:00'),
+(1041, 234.97, 123154, 'Delivered', 4, '2024-05-15', 1, 1, '2024-05-01 14:30:00'),
+(1042, 580.97, 324254, 'Delivered', 5, '2024-05-20', 2, 2, '2024-05-05 10:15:00'),
+(1043, 234.97, 123155, 'Delivered', 4, '2024-06-01', 1, 1, '2024-05-15 09:00:00'),
+(1044, 150.00, 324255, 'Delivered', 5, '2024-06-10', 2, 2, '2024-05-25 16:45:00'),
+(1045, 170.99, 123156, 'Delivered', 4, '2024-06-15', 1, 1, '2024-06-01 11:30:00'),
+(1046, 99.98, 324256, 'Delivered', 5, '2024-06-20', 2, 2, '2024-06-05 13:20:00'),
+(1047, 184.98, 123157, 'Delivered', 4, '2024-07-01', 1, 1, '2024-06-15 15:10:00'),
+(1048, 229.99, 324257, 'Delivered', 5, '2024-07-10', 2, 2, '2024-06-25 17:00:00'),
+(1049, 170.99, 123158, 'Delivered', 4, '2024-07-15', 1, 1, '2024-07-01 12:00:00'),
+(1050, 99.98, 324258, 'Delivered', 5, '2024-07-20', 2, 2, '2024-07-05 14:45:00'),
+(1051, 184.98, 123159, 'Delivered', 4, '2024-08-01', 1, 1, '2024-07-15 09:30:00'),
+(1052, 220.98, 324259, 'Delivered', 5, '2024-08-10', 2, 2, '2024-07-25 11:15:00'),
+(1053, 234.97, 123160, 'Delivered', 4, '2024-08-15', 1, 1, '2024-08-01 13:00:00'),
+(1054, 150.00, 324260, 'Delivered', 5, '2024-08-20', 2, 2, '2024-08-05 15:45:00'),
+(1055, 170.99, 123161, 'Delivered', 4, '2024-09-01', 1, 1, '2024-08-15 10:30:00'),
+(1056, 99.98, 324261, 'Delivered', 5, '2024-09-10', 2, 2, '2024-08-25 12:15:00'),
+(1057, 184.98, 123162, 'Delivered', 4, '2024-09-15', 1, 1, '2024-09-01 14:00:00'),
+(1058, 229.99, 324262, 'Delivered', 5, '2024-09-20', 2, 2, '2024-09-05 16:45:00'),
+(1059, 170.99, 123163, 'Delivered', 4, '2024-10-01', 1, 1, '2024-09-15 09:30:00'),
+(1060, 99.98, 324263, 'Delivered', 5, '2024-10-10', 2, 2, '2024-09-25 11:15:00'),
+(1061, 184.98, 123164, 'Delivered', 4, '2024-10-15', 1, 1, '2024-10-01 14:30:00'),
+(1062, 229.99, 324264, 'Delivered', 5, '2024-10-20', 2, 2, '2024-10-05 10:15:00'),
+(1063, 170.99, 123165, 'Delivered', 4, '2024-11-01', 1, 1, '2024-10-15 09:00:00'),
+(1064, 99.98, 324265, 'Delivered', 5, '2024-11-15', 2, 2, '2024-11-01 07:30:00'),
+(1065, 184.98, 123166, 'Delivered', 4, '2024-11-10', 1, 1, '2024-11-01 09:30:00'),
+(1066, 229.99, 324266, 'Delivered', 5, '2024-11-20', 2, 2, '2024-11-05 13:20:00'),
+(1067, 170.99, 123167, 'Delivered', 4, '2024-12-01', 1, 1, '2024-11-15 15:10:00'),
+(1068, 99.98, 324267, 'Delivered', 5, '2024-12-10', 2, 2, '2024-11-25 17:00:00'),
+(1069, 184.98, 123168, 'Delivered', 4, '2024-12-15', 1, 1, '2024-12-01 12:00:00'),
+(1070, 229.99, 324268, 'In-transit', 5, '2024-12-20', 2, 2, '2024-12-05 14:45:00'),
+(1071, 65.99, 123169, 'Delivered', 4, '2025-01-01', 1, 1, '2024-12-15 09:30:00'),
+(1072, 76.70, 123170, 'In-transit', 4, '2025-01-01', 1, 1, '2024-12-16 09:31:00'),
+(1077, 67.05, 123171, 'Processing', 4, '2025-01-01', 1, 1, '2024-12-17 09:32:00');
+
+/*OrderOrderItemsProduct Table*/
+INSERT INTO `OrderOrderItemsProduct` (`orderID`, `productID`, `quantity`, `purchasePrice`) VALUES
+(1, 1, 1, 85.49),   -- Converse Black
+(1, 5, 1, 116.99),  -- Dunk Blue
+(1, 9, 1, 179.99),  -- Samba Black
+(2, 21, 1, 119.99), -- Yeezy Slide Black
+(2, 22, 1, 119.99), -- Yeezy Slide Bone
+(2, 24, 1, 119.99), -- Yeezy Slide Navy
+(3, 13, 1, 116.99), -- Birkenstock Arizona Black
+(3, 14, 1, 119.59), -- Birkenstock Arizona Brown
+(3, 17, 1, 80.99),  -- Crocs Classic Blue
+(4, 5, 1, 114.39),  -- Dunk Green
+(4, 6, 1, 110.49),  -- Dunk Purple
+(4, 10, 1, 183.99), -- Samba Navy
+(5, 28, 1, 80.99),  -- Superstar White
+(5, 29, 1, 80.99),  -- Superstar Black
+(5, 30, 1, 79.19),  -- Superstar Red
+(6, 31, 1, 134.99), -- Dr. Martens 1460 Black
+(6, 32, 1, 134.99), -- Dr. Martens 1460 White
+(7, 33, 1, 179.99), -- Timberland 6-Inch Premium Black
+(7, 34, 1, 179.99), -- Timberland 6-Inch Premium Brown
+(8, 13, 1, 116.99), -- Birkenstock Arizona Black
+(9, 17, 1, 80.99),  -- Crocs Classic Blue
+(10, 9, 1, 179.99), -- Samba Black
+(10, 24, 1, 101.99), -- Yeezy Slide Navy
+(11, 5, 1, 85.49),  -- Converse Black
+(11, 10, 1, 189.99), -- Samba White
+(12, 22, 1, 101.99), -- Yeezy Slide Bone
+(12, 7, 1, 119.59),  -- Dunk Yellow
+(13, 31, 1, 134.99), -- Dr. Martens 1460 Black
+(14, 24, 1, 101.99), -- Yeezy Slide Navy
+(14, 21, 1, 101.99); -- Yeezy Slide Black
+
 
 INSERT INTO `ProdManagerCreatesCategory` (`productManagerUsername`, `categoryID`) VALUES
 ('alicejohnson', 1),  -- Sneakers
@@ -420,6 +569,8 @@ INSERT INTO `SalesManagerManagesPriceProduct` (`productID`, `newPrice`, `discoun
 (23, 104.99, 12, 'davidwilliams'),
 (24, 113.99, 5, 'davidwilliams');
 
+
+
 INSERT INTO `Review` (`reviewContent`, `reviewStars`, `customerID`, `productID`, `productManagerUsername`, `approvalStatus`) VALUES
 -- Converse Reviews
 ('Classic and comfy. Love the black color!', 5, 1, 1, 'alicejohnson', 1),
@@ -442,6 +593,16 @@ INSERT INTO `Review` (`reviewContent`, `reviewStars`, `customerID`, `productID`,
 ('Not worth the hype in my opinion.', 2, 3, 24, 'alicejohnson', 2);
 
 
+/*Returns Table*/
+INSERT INTO `Returns` (`returnStatus`, `reason`, `orderID`, `productID`, `quantity`, `customerID`) VALUES
+('Pending', 'Product was damaged upon arrival.', 1, 1, 1, 1),
+('Approved', 'Size was too big.', 2, 21, 1, 2);
 
+
+
+/* SalesManagerApprovesRefundReturn Table */
+INSERT INTO `SalesManagerApprovesRefundReturn` (`requestID`, `salesManagerUsername`, `approvalStatus`) VALUES
+(1, 'davidwilliams', 'Pending'),
+(2, 'charliebrown', 'Pending');
 
 
