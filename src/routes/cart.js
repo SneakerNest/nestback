@@ -5,7 +5,7 @@ import { getOrCreateCart, addProductToCart, removeProductFromCart } from '../con
 const router = Router();
 
 // Fetch or create a temporary cart using cookies
-router.post('/fetch', (req, res) => {
+router.post('/', (req, res) => {
   return getOrCreateCart(req, res);
 });
 

@@ -4,6 +4,7 @@ import express from 'express';
 import appRouter from './routes/auth.js';
 import { connectToDatabase } from './config/database.js';
 import cartRouter from './routes/cart.js';
+import wishlistRouter from './routes/wishlist.js';
 import cors from 'cors'; 
 import cookieParser from 'cookie-parser';
 
@@ -19,7 +20,7 @@ app.use(cookieParser());
 // Routes
 app.use('/api/v1/users', appRouter); 
 app.use('/api/v1/cart', cartRouter);
-
+app.use('/api/v1/wishlist', wishlistRouter); 
 // Define the port
 const PORT = process.env.NODE_DOCKER_PORT||3000;
 
