@@ -6,7 +6,9 @@ import { connectToDatabase } from './config/database.js';
 import cartRouter from './routes/cart.js';
 import storeRouter from './routes/Store.js';
 import wishlistRouter from './routes/wishlist.js';
-import orderRouter from './routes/order.js';//here
+import addressRouter from './routes/address.js';
+import billingRouter from './routes/billing.js';
+import orderRouter from './routes/order.js';
 import cors from 'cors'; 
 import cookieParser from 'cookie-parser';
 
@@ -24,7 +26,10 @@ app.use('/api/v1/users', appRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/wishlist', wishlistRouter); 
 app.use('/api/v1/store', storeRouter);
-app.use('/api/v1/store/order', orderRouter);//here
+app.use('/api/v1/address', addressRouter);
+app.use('/api/v1/billing', billingRouter);
+app.use('/api/v1/order', orderRouter);
+
 // Define the port
 const PORT = process.env.NODE_DOCKER_PORT||3000;
 

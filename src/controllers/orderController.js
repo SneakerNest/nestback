@@ -1,125 +1,130 @@
 import { pool } from '../config/database.js';
 
-// Get all products with categories
-export const getProductsByCategory = async (req, res) => {
-    try {
-        const query = `
-            SELECT 
-                c.categoryID,
-                c.name as categoryName,
-                JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'productID', p.productID,
-                        'name', p.name,
-                        'description', p.description,
-                        'unitPrice', p.unitPrice,
-                        'discountPercentage', p.discountPercentage,
-                        'stock', p.stock,
-                        'brand', p.brand,
-                        'color', p.color,
-                        'pictures', (
-                            SELECT GROUP_CONCAT(picturePath)
-                            FROM Pictures
-                            WHERE productID = p.productID
-                        )
-                    )
-                ) as products
-            FROM Category c
-            LEFT JOIN CategoryCategorizesProduct ccp ON c.categoryID = ccp.categoryID
-            LEFT JOIN Product p ON ccp.productID = p.productID
-            WHERE c.parentCategoryID = 0
-            GROUP BY c.categoryID
-        `;
+const getOrder = async (req, res) => {
+  try {
+    const orderID = req.params.id;
 
-        const [results] = await pool.query(query);
-        res.status(200).json(results);
-    } catch (error) {
-        console.error('Error fetching products by category:', error);
-        res.status(500).json({ message: 'Error fetching products', error: error.message });
+    const [orders] = await pool.query('SELECT * FROM `Order` WHERE orderID = ?', [orderID]);
+    if (orders.length === 0) return res.status(404).json({ msg: 'Order not found' });
+
+    const [items] = await pool.query('SELECT * FROM OrderOrderItemsProduct WHERE orderID = ?', [orderID]);
+
+    for (let item of items) {
+      const [product] = await pool.query('SELECT name FROM Product WHERE productID = ?', [item.productID]);
+      item.productName = product[0].name;
     }
+
+    orders[0].orderItems = items;
+    res.status(200).json(orders[0]);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error retrieving order' });
+  }
 };
 
-// Place order
-export const placeOrder = async (req, res) => {
+const getUserOrders = async (req, res) => {
     try {
-        const { cart, address } = req.body;
-
-        // Check if user is logged in
-        if (!cart.loggedIn || cart.temporary || !cart.customerID) {
-            return res.status(401).json({
-                message: 'Please login to place an order',
-                cartDetails: cart
-            });
-        }
-
-        await pool.query('START TRANSACTION');
-
-        // Insert delivery address
-        const addressQuery = `
-            INSERT INTO Address (addressTitle, country, city, province, zipCode, streetAddress) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        `;
-        const [addressResult] = await pool.query(addressQuery, [
-            'Delivery Address',
-            address.country,
-            address.city,
-            address.province,
-            address.zipCode,
-            address.streetAddress
-        ]);
-
-        const addressID = addressResult.insertId;
-
-        // Process each product in cart
-        for (const product of cart.products) {
-            // Check stock availability
-            const [stockCheck] = await pool.query(
-                'SELECT stock FROM Product WHERE productID = ? FOR UPDATE',
-                [product.productID]
-            );
-
-            if (!stockCheck[0] || stockCheck[0].stock < product.quantity) {
-                await pool.query('ROLLBACK');
-                return res.status(400).json({
-                    message: `Insufficient stock for product: ${product.name}`
-                });
-            }
-
-            // Update stock
-            await pool.query(
-                'UPDATE Product SET stock = stock - ? WHERE productID = ?',
-                [product.quantity, product.productID]
-            );
-        }
-
-        // Clear the cart
-        await pool.query('DELETE FROM Cart WHERE cartID = ?', [cart.cartID]);
-
-        await pool.query('COMMIT');
-
-        res.status(201).json({
-            message: 'Order placed successfully',
-            orderDetails: {
-                customerID: cart.customerID,
-                totalAmount: cart.totalPrice,
-                numberOfItems: cart.numProducts,
-                deliveryAddress: addressID,
-                products: cart.products.map(p => ({
-                    productID: p.productID,
-                    name: p.name,
-                    quantity: p.quantity,
-                    unitPrice: p.unitPrice,
-                    discountedPrice: p.discountedPrice
-                }))
-            }
-        });
-
-    } catch (error) {
-        await pool.query('ROLLBACK');
-        console.error('Error placing order:', error);
-        res.status(500).json({
-            message: 'Error placing order',
-            error: error.message
-        });
+      console.log('Decoded user:', req.user);
+  
+      const username = req.user?.username;
+      if (!username) {
+        return res.status(400).json({ msg: 'Username missing from token' });
+      }
+  
+      const [users] = await pool.query('SELECT customerID FROM Customer WHERE username = ?', [username]);
+      if (users.length === 0) {
+        console.log('No customer found for username:', username);
+        return res.status(404).json({ msg: 'User not found' });
+      }
+  
+      const customerID = users[0].customerID;
+      const [orders] = await pool.query('SELECT * FROM `Order` WHERE customerID = ?', [customerID]);
+  
+      res.status(200).json(orders);
+    } catch (err) {
+      console.log('Error during getUserOrders:', err);
+      res.status(500).json({ msg: 'Error retrieving orders' });
     }
+  };
+
+const getOrdersByDateRange = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.body;
+    const [orders] = await pool.query('SELECT orderID FROM `Order` WHERE timeOrdered BETWEEN ? AND ?', [startDate, endDate]);
+
+    if (orders.length === 0) return res.status(404).json({ msg: 'No orders found' });
+    res.status(200).json(orders);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error retrieving orders' });
+  }
+};
+
+const cancelOrder = async (req, res) => {
+  try {
+    const orderID = req.params.id;
+    const [[order]] = await pool.query('SELECT deliveryStatus FROM `Order` WHERE orderID = ?', [orderID]);
+
+    if (!order || ['Delivering', 'Delivered'].includes(order.deliveryStatus)) {
+      return res.status(400).json({ msg: 'Cannot cancel delivered or delivering order' });
+    }
+
+    await pool.query('UPDATE `Order` SET deliveryStatus = ? WHERE orderID = ?', ['Cancelled', orderID]);
+
+    const [items] = await pool.query('SELECT productID, quantity FROM OrderOrderItemsProduct WHERE orderID = ?', [orderID]);
+    for (let item of items) {
+      await pool.query('UPDATE Product SET stock = stock + ? WHERE productID = ?', [item.quantity, item.productID]);
+    }
+
+    res.status(200).json({ msg: 'Order cancelled and stock updated' });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error cancelling order' });
+  }
+};
+
+const getPurchasePrice = async (req, res) => {
+  try {
+    const { orderid, productid } = req.params;
+    const [result] = await pool.query(
+      'SELECT purchasePrice FROM OrderOrderItemsProduct WHERE productID = ? AND orderID = ?',
+      [productid, orderid]
+    );
+    res.status(200).json(result);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error retrieving product' });
+  }
+};
+
+const getAllOrder = async (req, res) => {
+  try {
+    const [orders] = await pool.query('SELECT * FROM `Order` ORDER BY timeOrdered');
+    res.status(200).json(orders);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error retrieving orders' });
+  }
+};
+
+const getOrderWrapper = async (req) => {
+  let data;
+  const mockRes = {
+    status(code) { this.statusCode = code; return this; },
+    json(val) { data = val; },
+    send(val) { data = val; }
+  };
+  await getOrder(req, mockRes);
+  if (!data) throw new Error('No order data');
+  return data;
+};
+
+export {
+  getOrder,
+  getUserOrders,
+  getOrdersByDateRange,
+  cancelOrder,
+  getPurchasePrice,
+  getAllOrder,
+  getOrderWrapper
 };

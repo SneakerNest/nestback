@@ -1,14 +1,5 @@
 import { Router } from 'express';
-import { 
-    getProductsByCategory,
-    getProductsForCategory,
-    getCategories,
-    getAllProducts,
-    getFootwearCategories,
-    getSubcategoryProducts,
-    getParentCategoryProducts
-} from '../controllers/productController.js';
-import { getProductsByCategory as orderGetProductsByCategory, placeOrder } from '../controllers/orderController.js';
+import {  getProductsByCategory,getProductsForCategory, getCategories, getAllProducts,getFootwearCategories,getSubcategoryProducts, getParentCategoryProducts} from '../controllers/productController.js';
 
 const router = Router();
 
@@ -21,8 +12,5 @@ router.get('/footwear-categories', getFootwearCategories);
 router.get('/categories/:parentId/subcategories', getSubcategoryProducts);
 router.get('/categories/:parentId/all-products', getParentCategoryProducts);
 
-// Order routes
-router.get('/products/categories', orderGetProductsByCategory);
-router.post('/order', placeOrder);
 
 export default router;

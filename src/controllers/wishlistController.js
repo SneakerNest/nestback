@@ -155,59 +155,76 @@ const removeProductFromWishlist = async (req, res) => {
   }
 };
 
-// Move product from wishlist to cart (only for logged-in users)
 const moveToCart = async (req, res) => {
-  try {
-    const { productID } = req.params;
-    const customerID = req.body.customerID; // This should be passed by the client when logged in
-
-    if (!customerID) {
-      return res.status(400).json({ error: 'Customer ID is required.' });
+    try {
+      const { productID } = req.params;
+      const customerID = req.body.customerID;
+  
+      if (!customerID) {
+        return res.status(400).json({ error: 'Customer ID is required.' });
+      }
+  
+      if (!productID) {
+        return res.status(400).json({ error: 'Product ID is required.' });
+      }
+  
+      // 1. Check if the user has a wishlist
+      const [wishlistRows] = await pool.query(
+        'SELECT * FROM Wishlist WHERE customerID = ?',
+        [customerID]
+      );
+  
+      if (wishlistRows.length === 0) {
+        return res.status(404).json({ error: 'Wishlist not found.' });
+      }
+  
+      const wishlistID = wishlistRows[0].wishlistID;
+  
+      // 2. Check if the product is in the wishlist
+      const [productRows] = await pool.query(
+        'SELECT * FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
+        [wishlistID, productID]
+      );
+  
+      if (productRows.length === 0) {
+        return res.status(404).json({ error: 'Product not found in wishlist.' });
+      }
+  
+      // 3. Check if the user already has a cart
+      const [cartRows] = await pool.query(
+        'SELECT * FROM Cart WHERE customerID = ? AND temporary = false',
+        [customerID]
+      );
+  
+      let cartID;
+      if (cartRows.length === 0) {
+        // If not, create a new permanent cart
+        const [newCart] = await pool.query(
+          'INSERT INTO Cart (customerID, temporary) VALUES (?, false)',
+          [customerID]
+        );
+        cartID = newCart.insertId;
+      } else {
+        cartID = cartRows[0].cartID;
+      }
+  
+      // 4. Insert the product into CartContainsProduct
+      await pool.query(
+        'INSERT INTO CartContainsProduct (cartID, productID, quantity) VALUES (?, ?, 1)',
+        [cartID, productID]
+      );
+  
+      // 5. Remove product from wishlist
+      await pool.query(
+        'DELETE FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
+        [wishlistID, productID]
+      );
+  
+      res.status(200).json({ message: 'Product moved to cart successfully.' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to move product to cart.' });
     }
-
-    if (!productID) {
-      return res.status(400).json({ error: 'Product ID is required.' });
-    }
-
-    // Check if the user has a wishlist
-    const [wishlistRows] = await pool.query(
-      'SELECT * FROM Wishlist WHERE customerID = ?',
-      [customerID]
-    );
-
-    if (wishlistRows.length === 0) {
-      return res.status(404).json({ error: 'Wishlist not found.' });
-    }
-
-    const wishlistID = wishlistRows[0].wishlistID;
-
-    // Check if the product is in the wishlist
-    const [productRows] = await pool.query(
-      'SELECT * FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
-      [wishlistID, productID]
-    );
-
-    if (productRows.length === 0) {
-      return res.status(404).json({ error: 'Product not found in wishlist.' });
-    }
-
-    // Add product to the cart and remove from wishlist
-    await pool.query(
-      'INSERT INTO CartContainsProduct (cartID, productID, quantity) VALUES (?, ?, 1)',
-      [customerID, productID] // You will need to map the wishlist to cartID logic here
-    );
-
-    // Remove product from wishlist
-    await pool.query(
-      'DELETE FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
-      [wishlistID, productID]
-    );
-
-    res.status(200).json({ message: 'Product moved to cart successfully.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to move product to cart.' });
-  }
-};
+  };
 
 export { addProductToWishlist, viewWishlist, removeProductFromWishlist, moveToCart };
