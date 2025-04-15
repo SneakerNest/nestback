@@ -1,2 +1,11 @@
+# Keep these out of your image
 node_modules
 .env
+.git
+.gitignore
+.vscode
+.idea
+*.log
+*.md
+tests
+coverage
