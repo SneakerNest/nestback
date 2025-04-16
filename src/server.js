@@ -2,14 +2,14 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
-import userRouter from './routes/UserAPI.js'; // ✅ renamed for clarity
+import userRouter from './routes/UserAPI.js'; 
 import { connectToDatabase } from './config/database.js';
-import cartRouter from './routes/cart.js';
-import storeRouter from './routes/Store.js';
-import wishlistRouter from './routes/wishlist.js';
+import cartRouter from './routes/CartAPI.js';
+import storeRouter from './routes/StoreAPI.js';
+import wishlistRouter from './routes/WishlistAPI.js';
 import addressRouter from './routes/AddressAPI.js';
-import billingRouter from './routes/billing.js';
-import orderRouter from './routes/order.js';
+import billingRouter from './routes/BillingAPI.js';
+import orderRouter from './routes/OrderAPI.js';
 import cors from 'cors'; 
 import cookieParser from 'cookie-parser';
 
@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(cookieParser()); 
 
 // Routes
-app.use('/api/v1/users', userRouter); // ✅ matches imported name
+app.use('/api/v1/users', userRouter); 
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/wishlist', wishlistRouter); 
 app.use('/api/v1/store', storeRouter);
