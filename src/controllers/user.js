@@ -6,6 +6,16 @@ import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
+const determineRole = (email) => {
+  if (email.includes('.product@company.com')) {
+    return 'productManager';
+  }
+  if (email.includes('.sales@company.com')) {
+    return 'salesManager';
+  }
+  return 'customer';
+};
+
 // Simplified registerUser function
 const registerUser = async (req, res) => {
   try {
@@ -21,19 +31,54 @@ const registerUser = async (req, res) => {
       return res.status(409).json({ msg: 'Username or email already exists' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
+    // Start transaction
+    await pool.query('START TRANSACTION');
 
-    // Insert user
-    await pool.query(
-      'INSERT INTO USERS (name, email, username, password) VALUES (?, ?, ?, ?)', 
-      [name, email, username, hash]
-    );
+    try {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(password, salt);
 
-    return res.status(201).json({ msg: 'User registered successfully' });
+      // Insert base user
+      await pool.query(
+        'INSERT INTO USERS (name, email, username, password) VALUES (?, ?, ?, ?)', 
+        [name, email, username, hash]
+      );
+
+      // Determine role based on email
+      const role = determineRole(email);
+
+      // Handle role-specific registration
+      if (role === 'productManager') {
+        // For demo purposes, using supplierID 1. In production, this should be provided or determined
+        await pool.query(
+          'INSERT INTO ProductManager (username, supplierID) VALUES (?, ?)',
+          [username, 1]
+        );
+      } else if (role === 'salesManager') {
+        await pool.query(
+          'INSERT INTO SalesManager (username, supplierID) VALUES (?, ?)',
+          [username, 1]
+        );
+      }
+
+      await pool.query('COMMIT');
+
+      return res.status(201).json({ 
+        msg: 'User registered successfully',
+        role: role
+      });
+
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      throw error;
+    }
+
   } catch (err) {
     console.error('Registration error:', err);
-    return res.status(500).json({ msg: 'Error registering user' });
+    return res.status(500).json({ 
+      msg: 'Error registering user',
+      error: err.message 
+    });
   }
 };
 
