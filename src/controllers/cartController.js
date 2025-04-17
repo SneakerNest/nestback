@@ -162,7 +162,10 @@ const addProductToCart = async (req, res) => {
         return res.status(404).json({ error: 'Product not found.' });
       }
   
-      const { unitPrice, discountPercentage } = productDetails[0];
+      const { unitPrice, discountPercentage, stock } = productDetails[0];
+      if (stock <= 0) {
+        return res.status(400).json({ error: 'Product is out of stock.' });
+      }
       // Calculate the discounted price
       const discountedPrice = unitPrice * (1 - discountPercentage / 100);
   

@@ -4,11 +4,14 @@ import bcrypt from 'bcryptjs';
 const getBillingInfo = async (req, res) => {
   try {
     const sql1 = 'SELECT * FROM Customer WHERE username = ?';
-    const [customers] = await pool.promise().query(sql1, [req.username]);
+    const [customers] = await pool.query(sql1, [req.username]);
+    if (customers.length === 0) {
+      return res.status(404).json({ msg: 'Customer not found' });
+    }
     const customerID = customers[0].customerID;
 
     const sql2 = 'SELECT * FROM BillingInfo WHERE customerID = ?';
-    const [billingInfos] = await pool.promise().query(sql2, [customerID]);
+    const [billingInfos] = await pool.query(sql2, [customerID]);
 
     billingInfos.forEach(info => delete info.creditCardNo);
 
@@ -22,12 +25,14 @@ const getBillingInfo = async (req, res) => {
 const getBillingInfoById = async (req, res) => {
   try {
     const sql1 = 'SELECT * FROM BillingInfo WHERE billingID = ?';
-    const [billing] = await pool.promise().query(sql1, [req.params.id]);
+    const [billing] = await pool.query(sql1, [req.params.id]);
+    if (billing.length === 0) {
+      return res.status(404).json({ msg: 'Billing info not found' });
+    }
 
     const sql2 = 'SELECT * FROM Customer WHERE customerID = ?';
-    const [customer] = await pool.promise().query(sql2, [billing[0].customerID]);
-
-    if (customer[0].username !== req.username) {
+    const [customer] = await pool.query(sql2, [billing[0].customerID]);
+    if (customer.length === 0 || customer[0].username !== req.username) {
       return res.status(403).json({ msg: 'Access denied' });
     }
 
@@ -42,24 +47,27 @@ const getBillingInfoById = async (req, res) => {
 const createBillingInfo = async (req, res) => {
   try {
     const sql1 = 'SELECT * FROM Customer WHERE username = ?';
-    const [customer] = await pool.promise().query(sql1, [req.username]);
+    const [customer] = await pool.query(sql1, [req.username]);
+    if (customer.length === 0) {
+      return res.status(404).json({ msg: 'Customer not found' });
+    }
     const customerID = customer[0].customerID;
 
     let addressID;
     if (req.body.address) {
       const { addressTitle, country, city, zipCode, streetAddress } = req.body.address;
-      const sql2 = 'INSERT INTO Address (addressTitle, country, city, zipCode, streetAddress) VALUES (?, ?, ?, ?, ?)';
-      const [address] = await pool.promise().query(sql2, [addressTitle, country, city, zipCode, streetAddress]);
+      const [address] = await pool.query(
+        'INSERT INTO Address (addressTitle, country, city, zipCode, streetAddress) VALUES (?, ?, ?, ?, ?)',
+        [addressTitle, country, city, zipCode, streetAddress]
+      );
       addressID = address.insertId;
-    } else if (req.body.addressID) {
-      addressID = req.body.addressID;
     } else {
-      return res.status(400).json({ msg: 'Address or addressID required' });
+      addressID = customer[0].addressID;
     }
 
     const cardHash = await bcrypt.hash(req.body.creditCardNo, 10);
     const sql3 = 'INSERT INTO BillingInfo (customerID, creditCardNo, creditCardEXP, addressID) VALUES (?, ?, ?, ?)';
-    await pool.promise().query(sql3, [customerID, cardHash, req.body.creditCardEXP, addressID]);
+    await pool.query(sql3, [customerID, cardHash, req.body.creditCardEXP, addressID]);
 
     return res.status(200).json({ msg: 'Billing information created' });
   } catch (err) {
@@ -71,12 +79,14 @@ const createBillingInfo = async (req, res) => {
 const updateBillingInfo = async (req, res) => {
   try {
     const sql1 = 'SELECT * FROM BillingInfo WHERE billingID = ?';
-    const [billing] = await pool.promise().query(sql1, [req.params.id]);
+    const [billing] = await pool.query(sql1, [req.params.id]);
+    if (billing.length === 0) {
+      return res.status(404).json({ msg: 'Billing info not found' });
+    }
 
     const sql2 = 'SELECT * FROM Customer WHERE customerID = ?';
-    const [customer] = await pool.promise().query(sql2, [billing[0].customerID]);
-
-    if (customer[0].username !== req.username) {
+    const [customer] = await pool.query(sql2, [billing[0].customerID]);
+    if (customer.length === 0 || customer[0].username !== req.username) {
       return res.status(403).json({ msg: 'Access denied' });
     }
 
@@ -85,20 +95,20 @@ const updateBillingInfo = async (req, res) => {
       if (req.body.address) {
         const { addressTitle, country, city, zipCode, streetAddress } = req.body.address;
         const sql3 = 'INSERT INTO Address (addressTitle, country, city, zipCode, streetAddress) VALUES (?, ?, ?, ?, ?)';
-        const [address] = await pool.promise().query(sql3, [addressTitle, country, city, zipCode, streetAddress]);
+        const [address] = await pool.query(sql3, [addressTitle, country, city, zipCode, streetAddress]);
         addressID = address.insertId;
       } else {
         addressID = req.body.addressID;
       }
 
       const sql4 = 'UPDATE BillingInfo SET addressID = ? WHERE billingID = ?';
-      await pool.promise().query(sql4, [addressID, req.params.id]);
+      await pool.query(sql4, [addressID, req.params.id]);
     }
 
     if (req.body.creditCardNo && req.body.creditCardEXP) {
       const cardHash = await bcrypt.hash(req.body.creditCardNo, 10);
       const sql5 = 'UPDATE BillingInfo SET creditCardNo = ?, creditCardEXP = ? WHERE billingID = ?';
-      await pool.promise().query(sql5, [cardHash, req.body.creditCardEXP, req.params.id]);
+      await pool.query(sql5, [cardHash, req.body.creditCardEXP, req.params.id]);
     }
 
     return res.status(200).json({ msg: 'Billing information updated' });
@@ -111,17 +121,19 @@ const updateBillingInfo = async (req, res) => {
 const deleteBillingInfo = async (req, res) => {
   try {
     const sql1 = 'SELECT * FROM BillingInfo WHERE billingID = ?';
-    const [billing] = await pool.promise().query(sql1, [req.params.id]);
+    const [billing] = await pool.query(sql1, [req.params.id]);
+    if (billing.length === 0) {
+      return res.status(404).json({ msg: 'Billing info not found' });
+    }
 
     const sql2 = 'SELECT * FROM Customer WHERE customerID = ?';
-    const [customer] = await pool.promise().query(sql2, [billing[0].customerID]);
-
-    if (customer[0].username !== req.username) {
+    const [customer] = await pool.query(sql2, [billing[0].customerID]);
+    if (customer.length === 0 || customer[0].username !== req.username) {
       return res.status(403).json({ msg: 'Access denied' });
     }
 
     const sql3 = 'DELETE FROM BillingInfo WHERE billingID = ?';
-    await pool.promise().query(sql3, [req.params.id]);
+    await pool.query(sql3, [req.params.id]);
 
     return res.status(200).json({ msg: 'Billing information deleted' });
   } catch (err) {

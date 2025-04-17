@@ -1,55 +1,59 @@
 import dotenv from 'dotenv';
 import { pool } from '../config/database.js';
-// New (correct, matches your installed package):
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
 const determineRole = (email) => {
-  if (email.includes('.product@company.com')) {
-    return 'productManager';
-  }
-  if (email.includes('.sales@company.com')) {
-    return 'salesManager';
-  }
+  if (email.includes('@productmanager.com')) return 'productManager';
+  if (email.includes('@salesmanager.com')) return 'salesManager';
   return 'customer';
 };
 
-// Simplified registerUser function
+const checkRole = async (username) => {
+  const [cust] = await pool.query('SELECT * FROM Customer WHERE username = ?', [username]);
+  if (cust.length > 0) return 'customer';
+
+  const [pm] = await pool.query('SELECT * FROM ProductManager WHERE username = ?', [username]);
+  if (pm.length > 0) return 'productManager';
+
+  const [sm] = await pool.query('SELECT * FROM SalesManager WHERE username = ?', [username]);
+  if (sm.length > 0) return 'salesManager';
+
+  return 'unknown';
+};
+
 const registerUser = async (req, res) => {
   try {
-    const { name, email, username, password } = req.body;
+    const { name, email, username, password, address, phone, taxID } = req.body;
 
     if (!name || !email || !username || !password) {
-      return res.status(400).json({ msg: 'Please fill in all fields' });
+      return res.status(400).json({ msg: 'Please fill in all required fields' });
     }
 
-    // Check existing user
-    const [existingUser] = await pool.query('SELECT * FROM USERS WHERE username = ? OR email = ?', [username, email]);
+    const [existingUser] = await pool.query(
+      'SELECT * FROM USERS WHERE username = ? OR email = ?',
+      [username, email]
+    );
     if (existingUser.length > 0) {
       return res.status(409).json({ msg: 'Username or email already exists' });
     }
 
-    // Start transaction
     await pool.query('START TRANSACTION');
 
     try {
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(password, salt);
 
-      // Insert base user
       await pool.query(
-        'INSERT INTO USERS (name, email, username, password) VALUES (?, ?, ?, ?)', 
+        'INSERT INTO USERS (name, email, username, password) VALUES (?, ?, ?, ?)',
         [name, email, username, hash]
       );
 
-      // Determine role based on email
       const role = determineRole(email);
 
-      // Handle role-specific registration
       if (role === 'productManager') {
-        // For demo purposes, using supplierID 1. In production, this should be provided or determined
         await pool.query(
           'INSERT INTO ProductManager (username, supplierID) VALUES (?, ?)',
           [username, 1]
@@ -59,13 +63,38 @@ const registerUser = async (req, res) => {
           'INSERT INTO SalesManager (username, supplierID) VALUES (?, ?)',
           [username, 1]
         );
+      } else {
+        if (!address || !phone || !taxID) {
+          throw new Error('Customer registration requires address, phone, and taxID');
+        }
+
+        const {
+          addressTitle,
+          country,
+          city,
+          province,
+          zipCode,
+          streetAddress
+        } = address;
+
+        const [addressResult] = await pool.query(
+          'INSERT INTO Address (addressTitle, country, city, province, zipCode, streetAddress, longitude, latitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [addressTitle, country, city, province, zipCode, streetAddress, 0, 0]
+        );
+
+        const addressID = addressResult.insertId;
+
+        await pool.query(
+          'INSERT INTO Customer (username, addressID, phone, taxID) VALUES (?, ?, ?, ?)',
+          [username, addressID, phone, taxID]
+        );
       }
 
       await pool.query('COMMIT');
 
-      return res.status(201).json({ 
+      return res.status(201).json({
         msg: 'User registered successfully',
-        role: role
+        role
       });
 
     } catch (error) {
@@ -75,84 +104,13 @@ const registerUser = async (req, res) => {
 
   } catch (err) {
     console.error('Registration error:', err);
-    return res.status(500).json({ 
+    return res.status(500).json({
       msg: 'Error registering user',
-      error: err.message 
+      error: err.message
     });
   }
 };
 
-const registerCustomerInternal = async (req, res) => {
-  try {
-    const { address, phone, username, taxID } = req.body;
-
-    if (!address || !phone) {
-      throw new Error('Please fill in all fields (address, phone)');
-    }
-
-    // Insert address into address table
-    const { addressTitle, country, city, zipCode, streetAddress } = address;
-    const sql = 'INSERT INTO `Address` (addressTitle, country, city, zipCode, streetAddress) VALUES (?, ?, ?, ?, ?)';
-    const [results3] = await pool.query(sql, [addressTitle, country, city, zipCode, streetAddress]);
-    const addressID = results3.insertId;
-
-    // Insert customer
-    const sql2 = 'INSERT INTO `Customer` (username, addressID, phone, taxID) VALUES (?, ?, ?, ?)';
-    await pool.query(sql2, [username, addressID, phone, taxID]);
-
-    return true;
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ msg: 'Error registering customer' });
-  }
-};
-
-const registerCustomer = async (req, res) => {
-  try {
-    // Register user
-    await registerUser(req, res);
-    // Register Customer
-    await registerCustomerInternal(req, res);
-
-    return res.status(200).json({ msg: 'User registered' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Error registering user' });
-  }
-};
-
-const checkRole = async (username) => {
-  try {
-    console.log(`Checking role for username: ${username}`);
-
-    // Check roles in order
-    const sql = 'SELECT * FROM `Customer` WHERE username = ?';
-    const [customerResults] = await pool.query(sql, [username]);
-    if (customerResults.length > 0) {
-      return 'customer';
-    }
-
-    const sql2 = 'SELECT * FROM `ProductManager` WHERE username = ?';
-    const [productManagerResults] = await pool.query(sql2, [username]);
-    if (productManagerResults.length > 0) {
-      return 'productManager';
-    }
-
-    const sql3 = 'SELECT * FROM `SalesManager` WHERE username = ?';
-    const [salesManagerResults] = await pool.query(sql3, [username]);
-    if (salesManagerResults.length > 0) {
-      return 'salesManager';
-    }
-
-    console.log('No specific role found for username:', username);
-    return 'admin'; // Default to admin if no other roles match
-  } catch (error) {
-    console.error('Error in checkRole:', error);
-    throw new Error('Failed to determine user role');
-  }
-};
-
-// Simplified loginUser function
 const loginUser = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -168,32 +126,34 @@ const loginUser = async (req, res) => {
 
     const user = users[0];
     const isMatch = await bcrypt.compare(password, user.password);
-    
+
     if (!isMatch) {
       return res.status(401).json({ msg: 'Invalid username or password' });
     }
 
+    const role = await checkRole(username);
+
     const token = jwt.sign(
-      { id: user.username }, 
-      process.env.JWT_SECRET, 
+      { id: user.username, role },
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    // Fixed cookie settings with proper maxAge value
     res.cookie('authToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000  // 24 hours in milliseconds
+      maxAge: 24 * 60 * 60 * 1000
     });
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       msg: 'Login successful',
       token,
       user: {
         username: user.username,
         email: user.email,
-        name: user.name
+        name: user.name,
+        role
       }
     });
   } catch (error) {
@@ -203,40 +163,24 @@ const loginUser = async (req, res) => {
 };
 
 const getUserProfile = async (req, res) => {
-  // Get customer profile (this will probably be expanded later)
   try {
-    const sql = 'SELECT * FROM `Customer` WHERE username = ?';
+    const sql = 'SELECT * FROM Customer WHERE username = ?';
     const [results] = await pool.query(sql, [req.username]);
-    if (results.length === 0) {
-      throw new Error('User not found');
-    }
+    if (results.length === 0) throw new Error('User not found');
 
     const customer = results[0];
 
-    const sql2 = 'SELECT * FROM `Address` WHERE addressID = ?';
-    const [results2] = await pool.query(sql2, [customer.addressID]);
+    const [results2] = await pool.query('SELECT * FROM Address WHERE addressID = ?', [customer.addressID]);
     const address = results2[0];
 
-    // Add orders here
-    const sql3 = 'SELECT * FROM `Order` WHERE customerID = ?';
-    const [results3] = await pool.query(sql3, [customer.customerID]);
-
-    // Get user
-    // Updated table name from User to USERS
-    const sql4 = 'SELECT * FROM USERS WHERE username = ?';
-    const [results4] = await pool.query(sql4, [req.username]);
+    const [results3] = await pool.query('SELECT * FROM `Order` WHERE customerID = ?', [customer.customerID]);
+    const [results4] = await pool.query('SELECT * FROM USERS WHERE username = ?', [req.username]);
 
     const user = results4[0];
-    // Remove the things that should be removed
     delete user.password;
     delete customer.customerID;
 
-    return res.status(200).json({
-      customer: customer,
-      address: address,
-      orders: results3,
-      user: user
-    });
+    return res.status(200).json({ customer, address, orders: results3, user });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ msg: 'Error getting user profile' });
@@ -244,36 +188,24 @@ const getUserProfile = async (req, res) => {
 };
 
 const updateUserProfile = async (req, res) => {
-  // Allows user to update name, password
-  // If the user is a customer, they can also update their phone. Address is up to addressAPI.
   try {
     const { name, password, phone } = req.body;
-    
+
     if (name) {
-      // Updated table name from User to USERS
-      const sql = 'UPDATE USERS SET name = ? WHERE username = ?';
-      await pool.query(sql, [name, req.username]);
+      await pool.query('UPDATE USERS SET name = ? WHERE username = ?', [name, req.username]);
     }
 
     if (password) {
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(password, salt);
-
-      // Updated table name from User to USERS
-      const sql = 'UPDATE USERS SET password = ? WHERE username = ?';
-      await pool.query(sql, [hash, req.username]);
+      await pool.query('UPDATE USERS SET password = ? WHERE username = ?', [hash, req.username]);
     }
 
-    // Customer specific
     if (req.role === 'customer' && phone) {
-      const sql = 'UPDATE `Customer` SET phone = ? WHERE username = ?';
-      await pool.query(sql, [phone, req.username]);
+      await pool.query('UPDATE Customer SET phone = ? WHERE username = ?', [phone, req.username]);
     }
 
-    return res.status(200).json({
-      msg: 'User updated'
-    });
-
+    return res.status(200).json({ msg: 'User updated' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ msg: 'Error updating user' });
@@ -282,9 +214,7 @@ const updateUserProfile = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   try {
-    // Updated table name from User to USERS
-    const sql = 'DELETE FROM USERS WHERE username = ?';
-    await pool.query(sql, [req.username]);
+    await pool.query('DELETE FROM USERS WHERE username = ?', [req.username]);
     return res.status(200).json({ msg: 'User deleted' });
   } catch (err) {
     console.error(err);
@@ -292,7 +222,6 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// Update exports to match what we're actually using
 export {
   registerUser,
   loginUser,

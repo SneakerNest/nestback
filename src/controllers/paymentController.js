@@ -1,3 +1,4 @@
+import { pool } from '../config/database.js';
 const processPayment = async (req, res) => {
     try {
       const card = req.body.creditCard;

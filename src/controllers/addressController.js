@@ -3,7 +3,7 @@ import { pool } from '../config/database.js';
 const getAddressById = async (addressid) => {
   try {
     const sql = 'SELECT * FROM Address WHERE addressID = ?';
-    const [results] = await pool.promise().query(sql, [addressid]);
+    const [results] = await pool.query(sql, [addressid]);
     if (results.length === 0) throw new Error('Address not found');
     return results;
   } catch (error) {
@@ -27,7 +27,7 @@ const getUserAddress = async (req, res) => {
   try {
     const username = req.params.username;
     const sql = 'SELECT * FROM Customer WHERE username = ?';
-    const [results] = await pool.promise().query(sql, [username]);
+    const [results] = await pool.query(sql, [username]);
     if (results.length === 0) throw new Error('User not found');
     const address = await getAddressById(results[0].addressID);
     return res.status(200).json(address[0]);
@@ -41,7 +41,7 @@ const getPersonalAddress = async (req, res) => {
   try {
     const username = req.username;
     const sql = 'SELECT * FROM Customer WHERE username = ?';
-    const [results] = await pool.promise().query(sql, [username]);
+    const [results] = await pool.query(sql, [username]);
     if (results.length === 0) throw new Error('User not found');
     const address = await getAddressById(results[0].addressID);
     return res.status(200).json(address[0]);
@@ -53,21 +53,24 @@ const getPersonalAddress = async (req, res) => {
 
 const createAddress = async (req, res) => {
   try {
-    if (req.role === 'customer') return res.status(403).send('Access Denied');
-
     const sql = `
       INSERT INTO Address 
       (addressTitle, country, city, province, zipCode, streetAddress, longitude, latitude) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await pool.promise().query(sql, [
-      req.body.addressTitle, req.body.country, req.body.city,
-      req.body.province, req.body.zipCode, req.body.streetAddress,
-      req.body.longitude, req.body.latitude
+    const [results] = await pool.query(sql, [
+      req.body.addressTitle,
+      req.body.country,
+      req.body.city,
+      req.body.province,
+      req.body.zipCode,
+      req.body.streetAddress,
+      0, // longitude default
+      0  // latitude default
     ]);
 
-    return res.status(200).send('Address created');
+    return res.status(200).json({ message: 'Address created', addressID: results.insertId });
   } catch (err) {
     console.log(err);
     return res.status(500).send(err.message);
@@ -90,7 +93,7 @@ const updateAddress = async (req, res) => {
     if (latitude) fields.push(`latitude = '${latitude}'`);
 
     const sql = `UPDATE Address SET ${fields.join(', ')} WHERE addressID = ?`;
-    await pool.promise().query(sql, [addressid]);
+    await pool.query(sql, [addressid]);
 
     return res.status(200).send('Address updated');
   } catch (err) {
@@ -103,7 +106,7 @@ const deleteAddress = async (req, res) => {
   try {
     const addressid = req.params.addressid;
     const sql = 'DELETE FROM Address WHERE addressID = ?';
-    await pool.promise().query(sql, [addressid]);
+    await pool.query(sql, [addressid]);
     return res.status(200).send('Address deleted');
   } catch (err) {
     console.log(err);
