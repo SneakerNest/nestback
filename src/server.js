@@ -8,7 +8,6 @@ import cartRouter from './routes/CartAPI.js';
 import storeRouter from './routes/StoreAPI.js';
 import wishlistRouter from './routes/WishlistAPI.js';
 import addressRouter from './routes/AddressAPI.js';
-import billingRouter from './routes/BillingAPI.js';
 import orderRouter from './routes/OrderAPI.js';
 import paymentRouter from './routes/PaymentAPI.js';
 import cors from 'cors'; 
@@ -28,7 +27,6 @@ app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/wishlist', wishlistRouter); 
 app.use('/api/v1/store', storeRouter);
 app.use('/api/v1/address', addressRouter);
-app.use('/api/v1/billing', billingRouter);
 app.use('/api/v1/order', orderRouter);
 app.use('/api/v1/payment', paymentRouter);
 
