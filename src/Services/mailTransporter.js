@@ -1,15 +1,13 @@
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+const nodemailer = require('nodemailer');
+require('dotenv').config();
 
-dotenv.config();
-
-// Create transporter
+// Create a transporter for nodemailer
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.MAIL_USER || 'sneakernest@store.com', // Use env, fallback default
-    pass: process.env.MAIL_PASSWORD, // App password
-  },
+    service: 'gmail', 
+    auth: {
+        user: 'zadados308@gmail.com', // Your email
+        pass: process.env.MAIL_PASSWORD, // Your email password or app-specific password
+    },
 });
 
-export { transporter };
+module.exports = { transporter };
