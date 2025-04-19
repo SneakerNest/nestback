@@ -4,13 +4,13 @@ import {  getProductsByCategory,getProductsForCategory, getCategories, getAllPro
 const router = Router();
 
 // Product category routes
-router.get('/categories', getCategories);
-router.get('/products/by-category', getProductsByCategory);
-router.get('/products/category/:categoryId', getProductsForCategory);
-router.get('/products', getAllProducts);
-router.get('/footwear-categories', getFootwearCategories);
-router.get('/categories/:parentId/subcategories', getSubcategoryProducts);
-router.get('/categories/:parentId/all-products', getParentCategoryProducts);
+//router.get('/categories', getCategories); //Useless 
+//router.get('/products/by-category', getProductsByCategory); //Useless
+router.get('/products/category/:categoryId', getProductsForCategory);//Get Products for Specific SubCategory
+router.get('/products', getAllProducts);//gets all products for main page
+router.get('/footwear-categories', getFootwearCategories);//gets all footwear categories
+router.get('/categories/:parentId/subcategories', getSubcategoryProducts); //Get Subcategory Products for parent category
+router.get('/categories/:parentId/all-products', getParentCategoryProducts);//Useful
 
 
 export default router;
