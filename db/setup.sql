@@ -314,7 +314,17 @@ create table if not exists `SalesManagerApprovesRefundReturn` (
 
 DELIMITER //
 
-
+/* trigger for updating the product prices automatically */
+CREATE TRIGGER update_product_price
+AFTER INSERT ON SalesManagerManagesPriceProduct
+FOR EACH ROW
+BEGIN
+    /* Update the price in the Product table when a new price update is logged */
+    UPDATE Product
+    SET unitPrice = NEW.newPrice,
+        discountPercentage = NEW.discountPercent
+    WHERE productID = NEW.productID;
+END; //
 
 /* trigger for updating the stock of a product when a restock is logged */
 create trigger update_stock_product
@@ -326,5 +336,21 @@ begin
 	where productID = new.productID;
 end; //
 
+/* trigger to check if return request is valid */
+CREATE TRIGGER check_return_request_validity
+BEFORE INSERT ON Returns
+FOR EACH ROW
+begin
+	declare pair_exists int;
+
+	select count(*) into pair_exists
+	from OrderOrderItemsProduct
+	where orderID = new.orderID and productID = new.productID;
+
+	if pair_exists = 0 then
+		signal sqlstate '45000'
+		set message_text = 'The product to be refunded does not exist in the referenced order';
+	end if;
+end; //
 
 DELIMITER ;
