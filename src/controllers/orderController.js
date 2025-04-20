@@ -209,18 +209,6 @@ const cancelOrder = async (req, res) => {
   }
 };
 
-const getOrderWrapper = async (req) => {
-  let data;
-  const mockRes = {
-    status(code) { this.statusCode = code; return this; },
-    json(val) { data = val; },
-    send(val) { data = val; }
-  };
-  await getOrder(req, mockRes);
-  if (!data) throw new Error('No order data');
-  return data;
-};
-
 const getAllOrder = async (req, res) => {
   try {
     const [orders] = await pool.query('SELECT * FROM `Order` ORDER BY timeOrdered DESC');
@@ -228,6 +216,36 @@ const getAllOrder = async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ msg: 'Error retrieving all orders' });
+  }
+};
+
+// Wrapper function to get order data
+const getOrderDataWrapper = async (req) => {
+  try {
+    let orderData;
+    const mockRes = {
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json(data) {
+        orderData = data;
+      },
+      send(data) {
+        orderData = data;
+      }
+    };
+
+    await getOrder(req, mockRes);
+
+    if (!orderData) {
+      throw new Error('No data returned from getOrder');
+    }
+
+    return orderData;
+  } catch (err) {
+    console.log(err);
+    throw new Error('Error retrieving order data');
   }
 };
 
@@ -241,7 +259,7 @@ export {
   updateOrder,
   cancelOrder,
   updateOrderItems,
-  getOrderWrapper,
+  getOrderDataWrapper,
   deleteOrderItem,
   getAllOrder
 };

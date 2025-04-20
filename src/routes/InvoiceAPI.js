@@ -1,16 +1,9 @@
-const express = require('express');
-const router = express.Router();
+import { Router } from 'express';
+import { mailSender, invoiceDownloader } from '../Services/invoiceMaker.js';
 
-//controllers 
-const invoiceService = require('../Services/invoiceMaker');
+const router = Router();
 
+router.get('/mail/:id/:email', mailSender);
+router.get('/download/:id', invoiceDownloader);
 
-router.get('/mail/:id/:email', (req, res) => {
-    return invoiceService.mailSender(req, res);
-});
-
-router.get('/download/:id', (req, res) => {
-    return invoiceService.invoiceDownloader(req, res);
-});
-
-module.exports = router;
+export default router;

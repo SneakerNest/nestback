@@ -9,7 +9,7 @@ import {
   updateOrder,
   cancelOrder,
   updateOrderItems,
-  getOrderWrapper,
+  getOrderDataWrapper,
   deleteOrderItem,
   getAllOrder
 } from '../controllers/orderController.js';

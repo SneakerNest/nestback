@@ -11,6 +11,7 @@ import addressRouter from './routes/AddressAPI.js';
 import orderRouter from './routes/OrderAPI.js';
 import paymentRouter from './routes/PaymentAPI.js';
 import deliveryRouter from './routes/DeliveryAPI.js';
+import invoiceRouter from './routes/InvoiceAPI.js';
 import cors from 'cors'; 
 import cookieParser from 'cookie-parser';
 
@@ -31,6 +32,7 @@ app.use('/api/v1/address', addressRouter);
 app.use('/api/v1/order', orderRouter);
 app.use('/api/v1/payment', paymentRouter);
 app.use('/api/v1/delivery', deliveryRouter);
+app.use('/api/v1/invoice', invoiceRouter);
 
 // Health check
 app.get('/', (req, res) => {

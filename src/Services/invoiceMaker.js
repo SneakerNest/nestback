@@ -1,54 +1,39 @@
-const path = require('path');
-const PDFDocument = require('pdfkit');
-const { PassThrough } = require('stream');
-
-const fs = require('fs');
-
-const mailService = require('./mailTransporter')
-const orderController = require('../controllers/order');
-const addressController = require('../controllers/address');
+import path from 'path';
+import PDFDocument from 'pdfkit';
+import { PassThrough } from 'stream';
+import { transporter } from './mailTransporter.js';
+import { getOrderDataWrapper } from '../controllers/orderController.js';
+import { getAddressWrapper } from '../controllers/addressController.js';
 
 function writeInvoice(data) {
-    // Create a new PDF document instance
     const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
-    
-    // Pipe the PDF stream
     const stream = doc.pipe(new PassThrough());
 
     // Construct the absolute path to the logo image
     const logoPath = path.join(__dirname, '../assets/miscellaneous/logo.jpeg');
 
-
-    // ------------------------------------------
-    //    ZAD À DOS TITLE AND LOGO
-    // ------------------------------------------
+    // Header with SneakerNest branding
     doc.image(logoPath, 50, 50, { width: 50 });
-
     doc
       .fontSize(20)
-      .text('Zad à Dos', 120, 60);
+      .text('SneakerNest', 120, 60);
 
-    //    Move the cursor down before printing “INVOICE”
-    //    so that it appears on the next “line”
-    //    Manually set doc.y a bit lower than the logo
     doc.y = 120;
 
-    // ------------------------------------------
-    //    INVOICE HEADER 
-    // ------------------------------------------
+    // Invoice header
     doc
         .fontSize(20)
         .text('INVOICE', 50, doc.y)
         .moveDown();
 
-    // Order Number and Date (timeOrdered)
+    // Order details
     doc
       .fontSize(12)
       .text(`Order #: ${data.orderNumber}`, { align: 'left' })
       .text(`Order Date: ${new Date(data.timeOrdered).toLocaleString()}`, { align: 'left' })
       .moveDown();
   
-    // Delivery Address Details
+    // Delivery address
     doc
         .fontSize(10)
         .text(`Address Title: ${data.deliveryAddress.addressTitle}`, { align: 'left' })
@@ -59,28 +44,21 @@ function writeInvoice(data) {
         .text(`Street Address: ${data.deliveryAddress.streetAddress}`, { align: 'left' })
         .moveDown();
   
-    // ------------------------------------------
-    //    TABLE HEADER (ITEM / QTY / PRICE / ...)
-    // ------------------------------------------
+    // Table header
     const tableTop = doc.y;
-  
-    // Column Titles
     doc
       .fontSize(12)
-      .text('Item', 50, tableTop)
-      .text('Qty', 250, tableTop)
+      .text('Product', 50, tableTop)
+      .text('Quantity', 250, tableTop)
       .text('Unit Price', 330, tableTop, { width: 80, align: 'right' })
       .text('Subtotal', 420, tableTop, { width: 80, align: 'right' });
   
-    // Divider line
     doc
       .moveTo(50, tableTop + 15)
       .lineTo(550, tableTop + 15)
       .stroke();
   
-    // ---------------------------
-    //   TABLE BODY (ORDER ITEMS)
-    // ---------------------------
+    // Order items
     let currentY = tableTop + 25;
     data.orderItems.forEach((item) => {
       const productName = item.productName;
@@ -98,16 +76,12 @@ function writeInvoice(data) {
       currentY += 20;
     });
   
-    // --------------------------------
-    //   TOTAL PRICE
-    // --------------------------------
-    // Draw a horizontal line above “Total”
+    // Total
     doc
       .moveTo(50, currentY + 5)
       .lineTo(550, currentY + 5)
       .stroke();
   
-    // Print the total in bold
     doc
       .fontSize(12)
       .text(`Total: $${Number(data.totalPrice).toFixed(2)}`, 420, currentY + 15, {
@@ -115,115 +89,85 @@ function writeInvoice(data) {
         align: 'right',
       });
   
-    // --------------------------------
-    //   FOOTER OR ADDITIONAL INFO
-    // --------------------------------
-    // Spacing before footer
+    // Footer
     doc.moveDown(2);
+    doc.fontSize(10)
+      .text('Thank you for shopping at SneakerNest!')
+      .text('We appreciate your business.')
+      .text(`Order Tracking ID: ${data.deliveryID}`);
   
-    doc.fontSize(10).text('Thank you for your purchase!');
-    
-    // If you have any other fields you want to show:
-    // doc.text(`Delivery ID: ${data.deliveryID}`);
-  
-    // Finalize PDF file
     doc.end();
     return doc;
-  }
+}
 
 const mailSender = async (req, res) => {
     try {        
-        // Get the email address from the query parameters
         const recipientEmail = req.params.email;
-        console.log(recipientEmail);
-
-        // Validate the email address
+        
         if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
-        return res.status(400).json({ message: 'Invalid or missing email address.' });
+            return res.status(400).json({ message: 'Invalid email address.' });
         }
 
-        // Fetch data from the order controller function
-        const orderDataObject = await orderController.getOrderDataWrapper(req);
-
-        //Fetch the address details from address controller
+        const orderDataObject = await getOrderDataWrapper(req);
         const req2 = {params: {addressid: orderDataObject.deliveryAddressID}};
-        const addressDataObject = await addressController.getAddressWrapper(req2);
+        const addressDataObject = await getAddressWrapper(req2);
+        orderDataObject.deliveryAddress = addressDataObject;
 
-        // combine order and address data
-        orderDataObject.deliveryAddress = addressDataObject
-
-        // Generate PDF as a buffer
         const pdfStream = writeInvoice(orderDataObject);
-
-        //listening for data from the stream
         let chunks = [];
+        
         pdfStream.on('data', (chunk) => chunks.push(chunk));
 
-        //when the stream ends (i.e when all data has been received), process the remaining chunks
         pdfStream.on('end', async () => {
-            //combine all collected chunks into a single buffer
             const pdfBuffer = Buffer.concat(chunks);
-
-            // Send email with PDF attachment
             const mailOptions = {
-                from: 'zadados308@gmail.com',
-                to: recipientEmail, // Replace with recipient's email
-                subject: 'Your Invoice',
-                text: 'Please find your invoice attached.',
-                attachments: [
-                    {
-                    filename: 'invoice.pdf',
+                from: 'sneakernest1@gmail.com',
+                to: recipientEmail,
+                subject: 'Your SneakerNest Order Invoice',
+                text: 'Thank you for your purchase! Please find your invoice attached.',
+                attachments: [{
+                    filename: 'sneakernest-invoice.pdf',
                     content: pdfBuffer,
                     contentType: 'application/pdf',
-                    },
-                ],
+                }],
             };
 
             try {
-                await mailService.transporter.sendMail(mailOptions);
-                console.log('Email sent successfully');
-
-                // Respond to the API caller with success message
-                res.status(200).json({ message: 'Invoice sent successfully via email.' });
+                await transporter.sendMail(mailOptions);
+                res.status(200).json({ message: 'Invoice sent successfully.' });
             } catch (emailError) {
-                console.error('Error sending email:', emailError);
-                res.status(500).json({ message: 'Failed to send invoice via email.' });
+                console.error('Email error:', emailError);
+                res.status(500).json({ message: 'Failed to send invoice.' });
             }
         });
 
-        pdfStream.on('error', (streamError) => {
-            console.error('Error generating PDF:', streamError);
-            res.status(500).json({ message: 'Failed to generate invoice PDF.' });
+        pdfStream.on('error', (error) => {
+            console.error('PDF error:', error);
+            res.status(500).json({ message: 'Failed to generate PDF.' });
         });
             
     } catch (error) {
-        console.error('Error generating invoice:', error);
-        res.status(500).json({ message: 'Failed to generate invoice.' });
+        console.error('Invoice error:', error);
+        res.status(500).json({ message: 'Failed to process invoice.' });
     } 
 }
 
 const invoiceDownloader = async (req, res) => {
     try {
-        // Fetch data from the order controller function
-        const orderDataObject = await orderController.getOrderDataWrapper(req); 
-
-        //Fetch the address details from address controller
+        const orderDataObject = await getOrderDataWrapper(req);
         const req2 = {params: {addressid: orderDataObject.deliveryAddressID}};
-        const addressDataObject = await addressController.getAddressWrapper(req2);
+        const addressDataObject = await getAddressWrapper(req2);
+        orderDataObject.deliveryAddress = addressDataObject;
 
-        // combine order and address data
-        orderDataObject.deliveryAddress = addressDataObject
-
-        // Set headers once for PDF response
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename=invoice.pdf');
-        // Generate and pipe the PDF
+        res.setHeader('Content-Disposition', 'attachment; filename=sneakernest-invoice.pdf');
+        
         const stream = writeInvoice(orderDataObject);
         stream.pipe(res);
-      } catch (error) {
-        console.error('Error generating invoice on download:', error);
-        res.status(500).json({ message: 'Failed to generate invoice on download.' });
-      }
+    } catch (error) {
+        console.error('Download error:', error);
+        res.status(500).json({ message: 'Failed to download invoice.' });
+    }
 }
 
-module.exports = { writeInvoice, mailSender,invoiceDownloader };
+export { writeInvoice, mailSender, invoiceDownloader };
