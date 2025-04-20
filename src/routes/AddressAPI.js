@@ -7,15 +7,25 @@ import {
   updateAddress,
   deleteAddress
 } from '../controllers/addressController.js';
-import { authenticateToken } from '../middleware/auth-handler.js';
+import { authenticateToken, authenticateRole } from '../middleware/auth-handler.js';
 
 const router = Router();
 
-router.get('/:addressid', getAddress); // Public
-router.get('/user/:username', getUserAddress); // Public
-router.get('/personal/me', authenticateToken, getPersonalAddress); // Needs token
-router.post('/', authenticateToken, createAddress); // Must be logged in to create
-router.put('/:addressid', authenticateToken, updateAddress); // Only owner can update
-router.delete('/:addressid', authenticateToken, deleteAddress); // Only owner can delete
+// Sanity check route
+router.get('/', (req, res) => {
+    res.send('Address API, welcome!');
+});
+
+// Public routes
+router.get('/id/:addressid', authenticateToken, getAddress);
+
+// Protected routes with role authentication
+router.get('/uname/:username', authenticateToken, authenticateRole(['productManager']), getUserAddress);
+router.get('/personal', authenticateToken, authenticateRole(['customer']), getPersonalAddress);
+
+// Address management routes
+router.post('/newaddress', authenticateToken, createAddress);
+router.put('/:addressid', authenticateToken, updateAddress);
+router.delete('/:addressid', authenticateToken, deleteAddress);
 
 export default router;
