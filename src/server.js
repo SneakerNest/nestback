@@ -50,3 +50,5 @@ connectToDatabase()
     console.error('Failed to start server due to database connection error:', err.message);
     process.exit(1);
   });
+
+export default app;
