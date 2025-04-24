@@ -365,3 +365,61 @@ export const getParentCategoryProducts = async (req, res) => {
         });
     }
 };
+
+// Get product by ID
+export const getProductById = async (req, res) => {
+    try {
+        const { productId } = req.params;
+
+        const query = `
+            SELECT 
+                p.*,
+                GROUP_CONCAT(DISTINCT pic.picturePath) as pictures
+            FROM Product p
+            LEFT JOIN Pictures pic ON p.productID = pic.productID
+            WHERE p.productID = ? AND p.showProduct = true
+            GROUP BY 
+                p.productID, 
+                p.name,
+                p.stock,
+                p.unitPrice,
+                p.overallRating,
+                p.discountPercentage,
+                p.description,
+                p.timeListed,
+                p.brand,
+                p.color,
+                p.showProduct,
+                p.supplierID,
+                p.material,
+                p.warrantyMonths,
+                p.serialNumber,
+                p.popularity
+        `;
+
+        const [products] = await pool.query(query, [productId]);
+
+        if (products.length === 0) {
+            return res.status(404).json({ 
+                message: 'Product not found' 
+            });
+        }
+
+        const product = products[0];
+        const formattedProduct = {
+            ...product,
+            discountedPrice: (
+                product.unitPrice * (1 - product.discountPercentage / 100)
+            ).toFixed(2),
+            pictures: product.pictures ? product.pictures.split(',') : []
+        };
+
+        res.json(formattedProduct);
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        res.status(500).json({ 
+            message: 'Error fetching product', 
+            error: error.message 
+        });
+    }
+};

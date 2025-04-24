@@ -1,5 +1,14 @@
 import { Router } from 'express';
-import {  getProductsByCategory,getProductsForCategory, getCategories, getAllProducts,getFootwearCategories,getSubcategoryProducts, getParentCategoryProducts} from '../controllers/productController.js';
+import { 
+    getProductsByCategory,
+    getProductsForCategory, 
+    getCategories, 
+    getAllProducts,
+    getFootwearCategories,
+    getSubcategoryProducts, 
+    getParentCategoryProducts,
+    getProductById // Add this import
+} from '../controllers/productController.js';
 
 const router = Router();
 
@@ -12,5 +21,7 @@ router.get('/footwear-categories', getFootwearCategories);//gets all footwear ca
 router.get('/categories/:parentId/subcategories', getSubcategoryProducts); //Get Subcategory Products for parent category
 router.get('/categories/:parentId/all-products', getParentCategoryProducts);//Useful
 
+// Add this new route
+router.get('/products/:productId', getProductById); // Get specific product details
 
 export default router;
