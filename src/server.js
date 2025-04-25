@@ -25,7 +25,7 @@ app.use(express.json());
 app.use(cookieParser()); 
 
 // Routes
-app.use('/api/v1/users', userRouter); 
+app.use('/api/v1/user', userRouter); 
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/wishlist', wishlistRouter); 
 app.use('/api/v1/store', storeRouter);
@@ -42,7 +42,9 @@ app.get('/', (req, res) => {
 });
 
 // Server startup
-connectToDatabase()
+// Only start the server if this file is run directly (not imported)
+if (process.env.NODE_ENV !== 'test') {
+  connectToDatabase()
   .then(() => {
     app.listen(process.env.NODE_DOCKER_PORT || 3000, '0.0.0.0', () => {
       console.log(`Server running on port ${process.env.NODE_DOCKER_PORT || 3000}`);
@@ -52,5 +54,7 @@ connectToDatabase()
     console.error('Failed to start server due to database connection error:', err.message);
     process.exit(1);
   });
+}
+
 
 export default app;
