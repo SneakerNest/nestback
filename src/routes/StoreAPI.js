@@ -19,7 +19,9 @@ import {
     updateReview,
     deleteReview,
     getPendingReviews,
-    getOverallRatingById
+    getOverallRatingById,
+    getAllPendingReviews,
+    approveReviewComment // Add this import
 } from '../controllers/reviewsController.js';
 
 // Import authentication middleware
@@ -106,4 +108,23 @@ router.get('/reviews/pending/:productManagerUsername', authenticateToken, authen
     return getPendingReviews(req, res);
 });
 
+// Get all pending reviews (product manager only)
+router.get('/reviews/pending', 
+    authenticateToken, 
+    authenticateRole(['productManager']), 
+    (req, res) => {
+        return getAllPendingReviews(req, res);
+});
+
+// Approve review comment (product manager only)
+router.put('/reviews/:reviewId/approve', 
+    authenticateToken, 
+    authenticateRole(['productManager']), 
+    (req, res) => {
+        return approveReviewComment(req, res);
+});
+
 export default router;
+
+
+// hi gurl

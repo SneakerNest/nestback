@@ -12,7 +12,19 @@ const getAllReviews = async (req, res) => {
 
 const getApprovedReviews = async (req, res) => {
   try {
-    const sql = 'SELECT * FROM `Review` WHERE productID = ? AND approvalStatus = 1';
+    const sql = `
+      SELECT 
+        reviewID,
+        CASE WHEN approvalStatus = 1 THEN reviewContent ELSE NULL END as reviewContent,
+        reviewStars,
+        customerID,
+        productID,
+        productManagerUsername,
+        approvalStatus
+      FROM Review 
+      WHERE productID = ? 
+      AND (reviewStars IS NOT NULL OR approvalStatus = 1)`;
+    
     const [results] = await pool.query(sql, [req.params.id]);
     res.status(200).json(results);
   } catch (err) {
@@ -47,93 +59,132 @@ const createReview = async (req, res) => {
   try {
     const { productID, reviewContent, reviewStars, customerID } = req.body;
 
-    if (!reviewStars) {
-      return res.status(400).json({ msg: "Please fill in review stars" });
-    }
-    if (!customerID) {
-      return res.status(400).json({ msg: "Please fill in customer ID" });
-    }
-    if (!productID) {
-      return res.status(400).json({ msg: "Please fill in product ID" });
+    if (!customerID || !productID) {
+      return res.status(400).json({ 
+        msg: "Customer ID and Product ID are required" 
+      });
     }
 
-    try {
-      const getOrdersSQL = 'SELECT orderID FROM `Order` WHERE customerID = ?';
-      const [customerOrders] = await pool.query(getOrdersSQL, [customerID]);
+    // Check delivery status
+    const [deliveredOrders] = await pool.query(
+      `SELECT o.orderID 
+       FROM \`Order\` o 
+       JOIN OrderOrderItemsProduct oop ON o.orderID = oop.orderID 
+       WHERE o.customerID = ? 
+       AND oop.productID = ? 
+       AND o.deliveryStatus = 'Delivered'`,
+      [customerID, productID]
+    );
 
-      if (customerOrders.length === 0) {
-        return res.status(400).json({ msg: "You can't review a product you haven't bought" });
+    if (deliveredOrders.length === 0) {
+      return res.status(400).json({ 
+        msg: "You can only review products from delivered orders" 
+      });
+    }
+
+    // Check existing review
+    const [existingReview] = await pool.query(
+      'SELECT reviewID, reviewContent, reviewStars FROM Review WHERE customerID = ? AND productID = ?',
+      [customerID, productID]
+    );
+
+    if (existingReview.length > 0) {
+      const current = existingReview[0];
+
+      // Handle rating addition (always approved)
+      if (reviewStars && !current.reviewStars) {
+        await pool.query(
+          'UPDATE Review SET reviewStars = ? WHERE reviewID = ?',
+          [reviewStars, current.reviewID]
+        );
+        await updateProductRating(productID);
       }
 
-      const orderIDs = customerOrders.map(order => order.orderID);
-
-      const checkProductSQL = 'SELECT DISTINCT productID FROM `OrderOrderItemsProduct` WHERE orderID IN (?)';
-      const [orderProducts] = await pool.query(checkProductSQL, [orderIDs]);
-
-      const hasPurchased = orderProducts.some(item => item.productID == productID);
-
-      if (!hasPurchased) {
-        return res.status(400).json({ msg: "You can't review a product you haven't bought" });
+      // Handle comment addition (needs approval)
+      if (reviewContent && !current.reviewContent) {
+        const [productManager] = await assignProductManager(productID);
+        await pool.query(
+          'UPDATE Review SET reviewContent = ?, productManagerUsername = ?, approvalStatus = 0 WHERE reviewID = ?',
+          [reviewContent, productManager.username, current.reviewID]
+        );
       }
-    } catch (error) {
-      console.error("Error checking purchase history:", error);
-      throw error;
-    }
 
-    if (!reviewContent) {
-      const nullReviewContent = '(No written review)';
-      const sql = 'INSERT INTO `Review` (reviewContent, reviewStars, customerID, productID, productManagerUsername, approvalStatus) VALUES (?, ?, ?, ?, ?, ?)';
-      await pool.query(sql, [nullReviewContent, reviewStars, customerID, productID, null, 1]);
+      return res.status(200).json({ 
+        msg: `Update successful. ${reviewStars ? 'Rating visible immediately. ' : ''}${reviewContent ? 'Comment pending approval.' : ''}`
+      });
 
-      const getReviewsSql = 'SELECT reviewStars FROM `Review` WHERE productID = ?';
-      const [Reviews] = await pool.query(getReviewsSql, [productID]);
+    } else {
+      // Creating new review
+      const [productManager] = reviewContent ? await assignProductManager(productID) : [{ username: null }];
+      
+      // Create the review
+      const [result] = await pool.query(
+        'INSERT INTO Review (reviewContent, reviewStars, customerID, productID, productManagerUsername, approvalStatus) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          reviewContent || null,
+          reviewStars || null,
+          customerID,
+          productID,
+          productManager.username,
+          0 // Start with pending status
+        ]
+      );
 
-      if (Reviews.length > 0) {
-        const totalStars = Reviews.reduce((sum, review) => sum + review.reviewStars, 0);
-        const averageRating = (totalStars / Reviews.length).toFixed(2);
-
-        const updateProductSql = 'UPDATE `Product` SET overallRating = ? WHERE productID = ?';
-        await pool.query(updateProductSql, [averageRating, productID]);
+      // If there's a rating, make it visible immediately
+      if (reviewStars) {
+        await updateProductRating(productID);
       }
-      return res.status(200).json({ msg: "Review created and auto-approved" });
+
+      return res.status(201).json({ 
+        msg: `Review created. ${reviewStars ? 'Rating visible immediately. ' : ''}${reviewContent ? 'Comment pending approval.' : ''}`
+      });
     }
 
-    const productSupplierSql = 'SELECT supplierID FROM `Product` WHERE productID = ?';
-    const [productSupplierResults] = await pool.query(productSupplierSql, [productID]);
-
-    if (productSupplierResults.length === 0) {
-      return res.status(404).json({ msg: "Product Supplier not found for this product" });
-    }
-
-    const productSupplierID = productSupplierResults[0].supplierID;
-
-    const productManagerSql = 'SELECT username FROM `ProductManager` WHERE supplierID = ?';
-    const [productManagerResults] = await pool.query(productManagerSql, [productSupplierID]);
-
-    if (productManagerResults.length === 0) {
-      return res.status(404).json({ msg: "Product Manager not found for this supplier" });
-    }
-
-    const randomIndex = Math.floor(Math.random() * productManagerResults.length);
-    const productManagerUsername = productManagerResults[randomIndex].username;
-
-    const starReviewSql = 'INSERT INTO `Review` (reviewContent, reviewStars, customerID, productID, productManagerUsername, approvalStatus) VALUES (?, ?, ?, ?, ?, ?)';
-    await pool.query(starReviewSql, [reviewContent, reviewStars, customerID, productID, productManagerUsername, 0]);
-
-    const getReviewsSql = 'SELECT reviewStars FROM `Review` WHERE productID = ?';
-    const [Reviews] = await pool.query(getReviewsSql, [productID]);
-
-    const totalStars = Reviews.reduce((sum, review) => sum + review.reviewStars, 0);
-    const averageRating = (totalStars / Reviews.length).toFixed(2);
-
-    const updateProductSql = 'UPDATE `Product` SET overallRating = ? WHERE productID = ?';
-    await pool.query(updateProductSql, [averageRating, productID]);
-
-    res.status(200).json({ msg: "Review created" });
   } catch (err) {
-    console.log("Error creating review:", err);
+    console.error("Error creating review:", err);
     res.status(500).json({ msg: "Error creating review" });
   }
+};
+
+// Helper function to update product rating
+const updateProductRating = async (productID) => {
+  const [reviews] = await pool.query(
+    'SELECT reviewStars FROM `Review` WHERE productID = ? AND reviewStars IS NOT NULL',
+    [productID]
+  );
+
+  if (reviews.length > 0) {
+    const totalStars = reviews.reduce((sum, review) => sum + review.reviewStars, 0);
+    const averageRating = (totalStars / reviews.length).toFixed(2);
+    
+    await pool.query(
+      'UPDATE `Product` SET overallRating = ? WHERE productID = ?',
+      [averageRating, productID]
+    );
+  }
+};
+
+// Helper function to assign product manager
+const assignProductManager = async (productID) => {
+  const [productSupplier] = await pool.query(
+    'SELECT supplierID FROM `Product` WHERE productID = ?',
+    [productID]
+  );
+
+  if (!productSupplier.length) {
+    throw new Error("Product supplier not found");
+  }
+
+  const [productManagers] = await pool.query(
+    'SELECT username FROM `ProductManager` WHERE supplierID = ?',
+    [productSupplier[0].supplierID]
+  );
+
+  if (!productManagers.length) {
+    throw new Error("No product managers found for this supplier");
+  }
+
+  return [productManagers[Math.floor(Math.random() * productManagers.length)]];
 };
 
 const updateReview = async (req, res) => {
@@ -210,6 +261,70 @@ const getPendingReviews = async (req, res) => {
   }
 };
 
+const getAllPendingReviews = async (req, res) => {
+  try {
+    const sql = `
+        SELECT 
+            r.reviewID,
+            r.reviewContent,
+            r.reviewStars,
+            r.customerID,
+            r.productID,
+            r.productManagerUsername,
+            r.approvalStatus,
+            p.name as productName 
+        FROM Review r 
+        JOIN Product p ON r.productID = p.productID 
+        WHERE r.approvalStatus = 0`;
+        
+    const [results] = await pool.query(sql);
+    
+    if (results.length === 0) {
+      return res.status(200).json({ msg: "No pending reviews found", reviews: [] });
+    }
+    
+    res.status(200).json(results);
+  } catch (err) {
+    console.error("Error in getAllPendingReviews:", err);
+    res.status(500).json({ msg: "Error retrieving pending reviews" });
+  }
+};
+
+const approveReviewComment = async (req, res) => {
+  try {
+    const reviewId = req.params.reviewId;
+
+    // Check if review exists and has content
+    const [review] = await pool.query(
+      'SELECT reviewID, reviewContent FROM Review WHERE reviewID = ?',
+      [reviewId]
+    );
+
+    if (review.length === 0) {
+      return res.status(404).json({ msg: "Review not found" });
+    }
+
+    if (!review[0].reviewContent) {
+      return res.status(400).json({ msg: "This review has no comment to approve" });
+    }
+
+    // Update approval status
+    await pool.query(
+      'UPDATE Review SET approvalStatus = 1 WHERE reviewID = ?',
+      [reviewId]
+    );
+
+    res.status(200).json({ 
+      msg: "Review comment approved successfully",
+      reviewId: reviewId
+    });
+
+  } catch (err) {
+    console.error("Error approving review:", err);
+    res.status(500).json({ msg: "Error approving review comment" });
+  }
+};
+
 export {
   getAllReviews,
   getApprovedReviews,
@@ -218,5 +333,7 @@ export {
   updateReview,
   deleteReview,
   getPendingReviews,
-  getOverallRatingById
+  getOverallRatingById,
+  getAllPendingReviews,
+  approveReviewComment
 };
