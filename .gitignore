@@ -2,3 +2,7 @@
 node_modules/
 # Environment Variables
 .env
+.env.test
+
+#Coverage
+coverage/
