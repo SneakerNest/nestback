@@ -11,25 +11,26 @@ INSERT INTO Category (name, description) VALUES
 
 /*-- Subcategories for Sneakers*/
 INSERT INTO Category (name, description, parentCategoryID, image) VALUES
-('Converse', 'Classic canvas low-tops with a bold finish and timeless street style.', 1, 'conversered.jpg'),
-('Nike', 'A striking mix on a skate-inspired Nike silhouette.', 1, 'dunkpurple.jpg'),
-('Adidas', 'An iconic Adidas design with gum sole heritage.', 1, 'sambablack.jpg');
+('Converse', 'Timeless canvas sneakers with a street-style heritage, known for their rubber sole and iconic star patch.', 1, 'converseblack.jpg'),
+('Nike', 'Bold and energetic silhouettes blending performance with urban fashion, ideal for both sport and lifestyle.', 1, 'AirforceBlack.jpg'),
+('Adidas', 'Classic athletic footwear that mixes retro style with modern comfort, featuring signature 3-stripe designs.', 1, 'Sambablack.jpeg');
 
 /*-- Subcategories for Casual*/
 INSERT INTO Category (name, description, parentCategoryID, image) VALUES
-('Airforce', 'An iconic basketball-inspired sneaker, the Nike Air Force 1 has become a mainstay in casual footwear. Known for its clean design and versatility.', 2, 'Nikeairforceblack.jpeg'),
-('Superstar', 'A classic shoe that has been a favorite for decades, known for its shell toe and timeless design, combining street style with comfort.', 2, 'Superstarblack.jpeg');
-
+('Balenciaga', 'Avant-garde design meets luxury fashion—oversized soles and bold aesthetics redefine everyday sneakers.', 2, 'BalenciagaPurple.jpg'),
+('McQueen', 'Luxury low-top sneakers combining minimalist elegance with chunky silhouettes for statement styling.', 2, 'McqueenBlack.jpeg'),
+('BossTopSider', 'Classic leather sneakers that balance professional style with casual comfort—ideal for smart-casual outfits.', 2, 'TopsiderBlack.jpg');
 /*-- Subcategories for Boots*/
 INSERT INTO Category (name, description, parentCategoryID, image) VALUES
-('Drmartens', 'The 1460 boot is a legendary model from Dr. Martens, known for its durability, comfort, and iconic yellow stitching.', 3, 'Drmartensblack.jpeg'),
-('Timberland', 'Known for their durability and high-quality construction, Timberland’s 6-inch premium boots are often associated with workwear but are also a fashionable option for casual wear.', 3, 'Timberlandproblack.jpeg');
+
+('Timberland', 'Rugged and iconic boots designed for durability, featuring waterproof materials and cushioned support.', 3, 'TimberlandpremiumBrown.jpeg');
+
 
 /*-- Subcategories for SlippersSandals*/
 INSERT INTO Category (name, description, parentCategoryID, image) VALUES
-('Birkenstock', 'Minimalist comfort meets iconic style with adjustable straps and cork support.', 4, 'birkenstockarizonablack.jpg'),
-('Crocs', 'Lightweight, waterproof clogs in a playful shade for all-day wear.', 4, 'crocsblue.jpg'),
-('Yeezy', 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 4, 'yeezyslideblack.jpg');
+('Nike', 'Streamlined slides with plush cushioning and sleek straps—perfect for casual lounging or poolside vibes.', 4, 'NikevictoryBlack.jpeg'),
+('Crocs', 'Ultra-light and water-friendly clogs with breathable comfort—great for active and relaxed wear alike.', 4, 'CrocsGrey.jpeg'),
+('Champion', 'Slip-on sandals with soft foam and futuristic styling, offering ultimate comfort with everyday versatility.', 4, 'ChampionRed.jpeg');
 
 
 /*-- Address Table*/
@@ -58,180 +59,169 @@ INSERT INTO Supplier (name, phone, addressID) VALUES
 ('SneakerSupply Co.', 905551234567, 1); -- Make sure addressID=1 exists
 
 
-/*-- Products for Converse */
+/*-- Products for Converse/Chucks/Sneakers */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(60, 'Converse Black', 89.99, 0, 5, 'Classic canvas low-tops with timeless street style.','Converse', 1, 'Canvas', 12, 'SN-CONV-BLK', 80, 'Black'),
-(45, 'Converse Green', 89.99, 0, 5, 'Classic canvas low-tops with timeless street style.','Converse', 1, 'Canvas', 12, 'SN-CONV-GRN', 75, 'Green'),
-(55, 'Converse Red', 89.99, 0, 5, 'Classic canvas low-tops with timeless street style.', 'Converse', 1, 'Canvas', 12, 'SN-CONV-RED', 85, 'Red'),
-(55, 'Converse White', 89.99, 0, 5, 'Classic canvas low-tops with timeless street style.', 'Converse', 1, 'Canvas', 12, 'SN-CONV-WHT', 70, 'White');
+(1, 'Converse Chucks', 89.99, 0, 0, 'Classic canvas low-tops with timeless street style.','Converse', 1, 'Canvas', 12, 'SN-CONV-BLK', 80, 'Black'),
+(1, 'Converse Chucks', 89.99, 0, 0, 'Classic canvas low-tops with timeless street style.','Converse', 1, 'Canvas', 12, 'SN-CONV-WHT', 80, 'White');
 
-/*-- Products for Dunk */
+
+/*-- Products for Nike/Airforce/Sneakers */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color) 
 VALUES
-(50, 'Dunk Blue', 129.99, 0, 10, 'Bold, versatile, and made for both comfort and street performance.', 'Nike', 1, 'Leather', 12, 'SN-DK-B01', 82, 'Blue'),
-(40, 'Dunk Green', 129.99, 0, 12, 'Bold, versatile, and made for both comfort and street performance.', 'Nike', 1, 'Leather', 12, 'SN-DK-G01', 76, 'Green'),
-(45, 'Dunk Purple', 129.99, 0, 15, 'Bold, versatile, and made for both comfort and street performance.', 'Nike', 1, 'Leather', 12, 'SN-DK-P01', 88, 'Purple'),
-(35, 'Dunk Yellow', 129.99, 0, 8, 'Bold, versatile, and made for both comfort and street performance.', 'Nike', 1, 'Leather', 12, 'SN-DK-Y01', 73, 'Yellow');
+(0, 'Nike Airforce', 129.99, 3, 0, 'Timeless basketball-inspired sneakers known for their clean look, comfort, and everyday versatility.', 'Nike', 1, 'Leather', 12, 'SN-AF1-WHT', 90, 'White'),
+(0, 'Nike Airforce', 129.99, 3, 0, 'Timeless basketball-inspired sneakers known for their clean look, comfort, and everyday versatility.', 'Nike', 1, 'Leather', 12, 'SN-AF1-BLK', 90, 'Black');
 
-/*-- Products for Samba */
+
+/*-- Products for Adidas/Samba/Sneakers */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
  VALUES
-(60, 'Samba Black', 199.99, 0, 10, 'A timeless streetwear staple blending classic style with everyday comfort.', 'Adidas', 1, 'Leather', 12, 'SN-SB-B01', 90, 'Black'),
-(50, 'Samba Navy', 199.99, 0, 8, 'A timeless streetwear staple blending classic style with everyday comfort.', 'Adidas', 1, 'Leather', 12, 'SN-SB-N01', 85, 'Navy'),
-(40, 'Samba Pink', 199.99, 0, 12, 'A timeless streetwear staple blending classic style with everyday comfort.', 'Adidas', 1, 'Leather', 12, 'SN-SB-P01', 78, 'Pink'),
-(55, 'Samba White', 199.99, 0, 5, 'A timeless streetwear staple blending classic style with everyday comfort.', 'Adidas', 1, 'Leather', 12, 'SN-SB-W01', 88, 'White');
+(50, 'Adidas Samba', 199.99, 5, 0, 'A timeless streetwear staple blending classic style with everyday comfort.', 'Adidas', 1, 'Leather', 12, 'SN-SB-B01', 70, 'Black'),
+(50, 'Adidas Samba', 199.99, 5, 0, 'A timeless streetwear staple blending classic style with everyday comfort.', 'Adidas', 1, 'Leather', 12, 'SN-SB-W01', 70, 'White');
 
-/*-- Products for Birkenstock */
+/*-- Products for  Balenciaga/Casual */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color) 
 VALUES
-(50, 'Birkenstock Arizona Black', 129.99, 0, 10, 'Minimalist comfort meets iconic style with adjustable straps and cork support.', 'Birkenstock', 1, 'EVA', 12, 'SN-BA-B01', 82, 'Black'),
-(45, 'Birkenstock Arizona Brown', 129.99, 0, 8, 'Minimalist comfort meets iconic style with adjustable straps and cork support.', 'Birkenstock', 1, 'EVA', 12, 'SN-BA-BR01', 78, 'Brown'),
-(40, 'Birkenstock Arizona Khaki', 129.99, 0, 12, 'Minimalist comfort meets iconic style with adjustable straps and cork support.', 'Birkenstock', 1, 'EVA', 12, 'SN-BA-K01', 74, 'Khaki'),
-(42, 'Birkenstock Arizona Navy', 129.99, 0, 9, 'Minimalist comfort meets iconic style with adjustable straps and cork support.', 'Birkenstock', 1, 'EVA', 12, 'SN-BA-N01', 80, 'Navy');
+(30, 'Balenciaga Retro', 129.99, 1, 0, 'Bold, fashion-forward sneakers combining oversized design with luxury streetwear appeal.', 'Balenciaga', 1, 'EVA', 12, 'SN-BA-RG', 50, 'Grey'),
+(30, 'Balenciaga Retro', 129.99, 1, 0, 'Bold, fashion-forward sneakers combining oversized design with luxury streetwear appeal.', 'Balenciaga', 1, 'EVA', 12, 'SN-BA-RP', 50, 'Purple');
 
-/*-- Products for Crocs */
+
+/*-- Products for Mcqueen/Casual */
 INSERT INTO Product ( stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(40, 'Crocs Classic', 89.99, 0, 10, 'Lightweight, waterproof clogs designed for everyday comfort and casual wear.', 'Crocs', 1, 'Rubber', 6, 'SN-CR-BL', 80, 'Blue'),
-(35, 'Crocs Classic', 89.99, 0, 10, 'Lightweight, waterproof clogs designed for everyday comfort and casual wear.', 'Crocs', 1, 'Rubber', 6, 'SN-CR-NV', 75, 'Navy'),
-(50, 'Crocs Classic', 89.99, 0, 10, 'Lightweight, waterproof clogs designed for everyday comfort and casual wear.', 'Crocs', 1, 'Rubber', 6, 'SN-CR-PK', 82, 'Pink'),
-(45, 'Crocs Classic', 89.99, 0, 10, 'Lightweight, waterproof clogs designed for everyday comfort and casual wear.', 'Crocs', 1, 'Rubber', 6, 'SN-CR-RD', 77, 'Red');
+(20, 'McQueen Vintage', 89.99, 3, 0, 'Minimalist yet bold, McQueen casuals blend premium materials with iconic chunky soles for standout everyday wear.', 'McQueen', 1, 'Leather', 6, 'SN-MC-BLK', 50, 'Black'),
+(20, 'McQueen Vintage', 89.99, 3, 0, 'Minimalist yet bold, McQueen casuals blend premium materials with iconic chunky soles for standout everyday wear.', 'McQueen', 1, 'Leather', 6, 'SN-MC-WHT', 50, 'White');
 
-/*-- Products for Yeezy */
+
+
+/*-- Products for Topsider/BossTopSider/Casual */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(35, 'Yeezy Slide', 119.99, 0, 15, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'Yeezy', 1, 'EVA Foam', 6, 'SN-YS-BLK', 85, 'Black'),
-(30, 'Yeezy Slide', 119.99, 0, 15, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'Yeezy', 1, 'EVA Foam', 6, 'SN-YS-BNE', 80, 'Bone'),
-(40, 'Yeezy Slide', 119.99, 0, 15, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'Yeezy', 1, 'EVA Foam', 6, 'SN-YS-BRN', 78, 'Brown'),
-(25, 'Yeezy Slide', 119.99, 0, 15, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'Yeezy', 1, 'EVA Foam', 6, 'SN-YS-NVY', 72, 'Navy');
+(30, 'BOSS Elegancy', 119.99, 2, 0, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'BossTopSider', 1, 'EVA Foam', 6, 'SN-BT-BLK', 80, 'Black'),
+(30, 'BOSS Elegancy', 119.99, 2, 0, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'BossTopSider', 1, 'EVA Foam', 6, 'SN-BT-WHT', 80, 'White');
 
-/*-- Products for Airforce */
+
+/*-- Products for Timberlandpremium*/
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(50, 'Air Force 1 White', 99.99, 0, 10, 'A classic and timeless sneaker that combines style and comfort with a clean, all-white design.', 'Airforce', 1, 'Leather', 12, 'SN-AF1-WHT', 95, 'Red'),
-(40, 'Air Force 1 Navy', 99.99, 0, 10, 'A classic and timeless sneaker that combines style and comfort with a sleek, all-black design.', 'Airforce', 1, 'Leather', 12, 'SN-AF1-NAVY', 85, 'Navy'),
-(45, 'Air Force 1 Black', 99.99, 0, 12, 'A classic and timeless sneaker that combines style and comfort with a sleek, all-black design.', 'Airforce', 1, 'Leather', 12, 'SN-AF1-BLK', 90, 'Black');
+(45, 'Timberland Premium', 99.99, 5, 0, 'A rugged, high-ankle leather boot with a padded collar and durable rubber sole designed for outdoor wear.', 'Timberland', 1, 'Leather', 12, 'SN-TP-BRN', 70, 'Brown'),
+(45, 'Timberland Premium', 99.99, 5, 0, 'A rugged, high-ankle leather boot with a padded collar and durable rubber sole designed for outdoor wear.', 'Timberland', 1, 'Leather', 12, 'SN-TP-BLK', 70, 'Black');
 
-/*-- Products for Superstar */
+
+/*-- Products for Timberlandvibram */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(50, 'Superstar White', 89.99, 0, 10, 'A classic sneaker with a timeless design featuring a shell toe and three stripes.', 'Superstar', 1, 'Leather', 12, 'SN-SP-WHT', 92, 'White'),
-(40, 'Superstar Black', 89.99, 0, 10, 'A classic sneaker with a timeless design featuring a shell toe and three stripes.', 'Superstar', 1, 'Leather', 12, 'SN-SP-BLK', 88, 'Black'),
-(45, 'Superstar Red', 89.99, 0, 12, 'A classic sneaker with a timeless design featuring a shell toe and three stripes.', 'Superstar', 1, 'Leather', 12, 'SN-SP-RED', 85, 'Red');
+(40, 'Timberland Vibram', 89.99, 3, 0, 'A slip-on insulated boot with a padded, fold-over design and rugged outsole for cold-weather comfort and grip.', 'Timberland', 1, 'Leather', 12, 'SN-TV-GRY', 50, 'Grey'),
+(40, 'Timberland Vibram', 89.99, 3, 0, 'A slip-on insulated boot with a padded, fold-over design and rugged outsole for cold-weather comfort and grip.', 'Timberland', 1, 'Leather', 12, 'SN-TV-WHT', 50, 'White');
 
-/*-- Products for Drmartens */
+
+/*-- Products for Timberland Heritage */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(50, 'Dr. Martens 1460 Black', 149.99, 0, 10, 'The iconic 1460 boot with a classic black finish and yellow stitching.', 'Drmartens', 1, 'Leather', 12, 'SN-DM-BLK', 95, 'Black'),
-(40, 'Dr. Martens 1460 White', 149.99, 0, 10, 'The iconic 1460 boot with a classic brown finish and yellow stitching.', 'Drmartens', 1, 'Leather', 12, 'SN-DM-BRN', 90, 'White');
+(40, 'Timberland Heritage', 149.99, 2, 0, 'A waterproof high-ankle boot featuring a textured lower shell, smooth upper panel, and rugged outsole for enhanced durability.', 'Timberland', 1, 'Leather', 12, 'SN-TH-BLK', 30, 'Black'),
+(40, 'Timberland Heritage', 149.99, 2, 0, 'A waterproof high-ankle boot featuring a textured lower shell, smooth upper panel, and rugged outsole for enhanced durability.', 'Timberland', 1, 'Leather', 12, 'SN-TH-WHT', 30, 'White');
 
-/*-- Products for Timberland */
+/*-- Products for Nike Victory */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(50, 'Timberland 6-Inch Premium Black', 199.99, 0, 10, 'The classic Timberland boot with premium leather and waterproof construction.', 'Timberland', 1, 'Leather', 12, 'SN-TB-BLK', 98, 'Black'),
-(40, 'Timberland 6-Inch Premium Brown', 199.99, 0, 10, 'The classic Timberland boot with premium leather and waterproof construction.', 'Timberland', 1, 'Leather', 12, 'SN-TB-BRN', 95, 'Grey'),
-(45, 'Timberland 6-Inch Premium Tan', 199.99, 0, 12, 'The classic Timberland boot with premium leather and waterproof construction.', 'Timberland', 1, 'Leather', 12, 'SN-TB-TAN', 90, 'White');
+(60, 'Nike Victory One Slide', 199.99, 4, 0, 'A minimalist slip-on slide featuring a cushioned footbed and wide branded strap for casual comfort.', 'Nike', 1, 'EVA', 12, 'SN-NV-BLK', 90, 'Black'),
+(60, 'Nike Victory One Slide', 199.99, 4, 0, 'A minimalist slip-on slide featuring a cushioned footbed and wide branded strap for casual comfort.', 'Nike', 1, 'EVA', 12, 'SN-NV-WHT', 90, 'White');
+
+/*-- Products for Crocs */
+INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
+VALUES
+(50, 'Crocs Bayaband Clog', 99.99, 3, 0, 'A casual clog-style sandal featuring ventilation ports, a pivoting heel strap, and bold branding along the sole.', 'Crocs', 1, 'EVA', 12, 'SN-CB-BLK', 90, 'Black'),
+(50, 'Crocs Bayaband Clog', 99.99, 3, 0, 'A casual clog-style sandal featuring ventilation ports, a pivoting heel strap, and bold branding along the sole.', 'Crocs', 1, 'EVA', 12, 'SN-CB-GRY', 90, 'Grey');
+
+/*-- Products for Champion  */
+INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
+VALUES
+(50, 'Champion Icons Varsity', 99.99, 4, 0, 'A sporty open-toe slide sandal featuring a wide branded strap and cushioned footbed for casual wear.', 'Champion', 1, 'EVA', 12, 'SN-CH-BLK', 60, 'Black'),
+(50, 'Champion Icons Varsity', 99.99, 4, 0, 'A sporty open-toe slide sandal featuring a wide branded strap and cushioned footbed for casual wear.', 'Champion', 1, 'EVA', 12, 'SN-CH-RED', 60, 'Red');
 
 /*-- Pictures Table*/
 /* Inserting three pictures for each productID*/
-/*-- Sneakers*/
+
 INSERT INTO Pictures (productID, picturePath) VALUES
+
+/*-- Sneakers*/
 (1, 'converseblack.jpg'),
 
-(2, 'conversegreen.jpg'),
+(2, 'conversewhite.jpg'),
 
 
-(3, 'conversered.jpg'),
+(3, 'AirforceWhite.jpg'),
 
 
-(4, 'conversewhite.jpg'),
+(4, 'AirforceBlack.jpg'),
 
 
-(5, 'dunkblue.jpg'),
+(5, 'SambaBlack.jpeg'),
 
 
-(6, 'dunkgreen.jpg'),
+(6, 'SambaWhite.jpeg'),
+
+/*-- Casuals*/
+
+(7, 'BalenciagaGrey.jpg'),
 
 
-(7, 'dunkpurple.jpg'),
+(8, 'BalenciagaPurple.jpg'),
 
 
-(8, 'dunkyellow.jpg'),
+(9, 'McqueenBlack.jpeg'),
 
 
-(9, 'sambablack.jpg'),
+(10, 'McqueenWhite.jpeg'),
 
 
-(10, 'sambanavy.jpg'),
+(11, 'TopsiderBlack.jpg'),
 
 
-(11, 'samabpink.jpg'),
-
-
-(12, 'sambawhite.jpg'),
-
-
-/*-- SlippersSandals*/
-
-(13, 'birkenstockarizonablack.jpg'),
-
-
-(14, 'birkenstockarizonabrown.jpg'),
-
-
-(15, 'birkenstockarizonakhaki.jpg'),
-
-
-(16, 'birkenstockarizanavy.jpg'),
-
-
-(17, 'crocsblue.jpg'),
-
-
-(18, 'crocsnavy.jpg'),
-
-
-(19, 'crocsclassicpink.jpg'),
-
-
-(20, 'crocsred.jpg'),
-
-
-(21, 'yeezyslideblack.jpg'),
-
-
-(22, 'yeezyslidebone.jpg'),
-
-
-(23, 'yeezyslidebrown.jpg'),
-
-
-(24, 'yeezyslidenavy.jpg'),
-
-/*-- Casual*/
-(25, 'Nikeairforcewhite.jpeg'),
-
-(26, 'Nikeairforceblack.jpeg'),
-
-(27, 'Nikeairforcenavy.jpeg'),
-
-(28, 'Superstarwhite.jpeg'),
-
-(29, 'Superstarblack.jpeg'),
-
-(30, 'Superstarred.jpeg'),
+(12, 'TopsiderWhite.jpg'),
 
 /*-- Boots*/
-(31, 'Drmartensblack.jpeg'),
 
-(32, 'Drmartenswhite.jpeg'),
 
-(33, 'Timberlandproblack.jpeg'),
+(13, 'TimberlandpremiumBrown.jpeg'),
 
-(34, 'Timberlandprogrey.jpeg'),
 
-(35, 'Timberlandprowhite.jpeg');
+(14, 'TimberlandpremiumBlack.jpeg'),
+
+
+(15, 'TimberlandVibramGrey.jpeg'),
+
+
+(16, 'TimberlandVibramWhite.jpeg'),
+
+
+(17, 'TimberlandHeritageBlack.jpeg'),
+
+
+(18, 'TimberlandHeritageWhite.jpeg'),
+
+/*-- SlippersSandals*/
+(19, 'NikevictoryBlack.jpeg'),
+
+
+(20, 'NikevictoryWhite.jpeg'),
+
+
+(21, 'CrocsBlack.jpeg'),
+
+
+(22, 'CrocsGrey.jpeg'),
+
+
+(23, 'ChampionBlack.jpeg'),
+
+
+(24, 'ChampionRed.jpeg');
+
+
+
+
+
 
 /*-- CategoryCategorizesProduct Table */
 /* Inserting the categories for each productID */
@@ -239,45 +229,53 @@ INSERT INTO Pictures (productID, picturePath) VALUES
 /*-- Sneakers*/
 /* Inserting values into the CategoryCategorizesProduct table for productIDs 1-12 */
 
--- Converse Products (productID 1–4)
+-- Converse Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(5, 1), (5, 2), (5, 3), (5, 4);
+(5, 1), (5, 2);
 
--- Nike / Dunks (productID 5–8)
+-- Nike (Sneakers) Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(6, 5), (6, 6), (6, 7), (6, 8);
+(6, 3), (6, 4);
 
--- Adidas / Sambas (productID 9–12)
+-- Adidas Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(7, 9), (7, 10), (7, 11), (7, 12);
+(7, 5), (7, 6);
 
--- Airforce Products (productID 25–27)
+-- Balenciaga Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(11, 25), (11, 26), (11, 27);
+(8, 7), (8, 8);
 
--- Superstar Products (productID 28–30)
+-- McQueen Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(12, 28), (12, 29), (12, 30); 
+(9, 9), (9, 10);
 
--- Drmartens Products (productID 31–32)
+-- BossTopSider Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(13, 31), (13, 32);
+(10, 11), (10, 12);
 
--- Timberland Products (productID 33–35)
+-- Timberland Premium Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(14, 33), (14, 34), (14, 35); 
+(11, 13), (11, 14);
 
--- Birkenstock (productID 13–16)
+-- Timberland Vibram Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(8, 13), (8, 14), (8, 15), (8, 16);
+(11, 15), (11, 16);
 
--- Crocs (productID 17–20)
+-- Timberland Heritage Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(9, 17), (9, 18), (9, 19), (9, 20);
+(11, 17), (11, 18);
 
--- Yeezy (productID 21–24)
+-- Nike (Slides) Products
 INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
-(10, 21), (10, 22), (10, 23), (10, 24);
+(12, 19), (12, 20);
+
+-- Crocs Products
+INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
+(13, 21), (13, 22);
+
+-- Champion Products
+INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES
+(14, 23), (14, 24);
 
 
 
@@ -337,8 +335,8 @@ insert into `Wishlist` (`customerID`) values
 
 INSERT INTO `WishlistItems` (`wishlistID`, `productID`) VALUES 
 (1, 1),  -- Converse Black
-(1, 5),  -- Dunk Blue
-(1, 9);  -- Samba Black
+(1, 3),  -- Nike Airforce (used as Dunk Blue)
+(1, 5);  -- Adidas Samba Black
 
 
 
@@ -373,27 +371,24 @@ INSERT INTO `CourierDeliversToDeliveryRegion` (`courierID`, `regionID`, `deliver
 (2, 6, 370),
 (2, 7, 420);
 
-/*-- Cart Table (3 examples: 2 tied to customers, 1 temporary) */
 INSERT INTO `Cart` (`totalPrice`, `numProducts`, `fingerprint`, `temporary`, `customerID`) VALUES
-(269.97, 3, 'convDunk', FALSE, 1),     -- Converse Black + Dunk Green + Crocs Red
-(519.96, 4, 'yeezyPack', FALSE, 2),    -- Yeezy Slide (Black, Bone, Brown, Navy)
-(129.99, 1, 'birkyTemp', TRUE, NULL);  -- Temp cart: 1x Birkenstock Arizona Black
+(319.97, 3, 'convAirCrocs', FALSE, 1),     -- Converse Black + Airforce Black + Crocs Grey
+(399.98, 2, 'nikeSlideCombo', FALSE, 2),  -- Nike Victory Slide Black + White
+(199.99, 1, 'tempSlide', TRUE, NULL);     -- Temp cart: Nike Victory Black
 
 
 INSERT INTO `CartContainsProduct` (`cartID`, `productID`, `quantity`) VALUES
--- Cart 1 (convDunk - Customer 1)
+-- Cart 1 (convAirCrocs - Customer 1)
 (1, 1, 1),   -- Converse Black (89.99)
-(1, 6, 1),   -- Dunk Green (129.99)
-(1, 20, 1),  -- Crocs Red (89.99)  --> Total = 309.97, Discounted to ~269.97
+(1, 4, 1),   -- Airforce Black (129.99)
+(1, 22, 1),  -- Crocs Grey (99.99)
 
--- Cart 2 (yeezyPack - Customer 2)
-(2, 21, 1),  -- Yeezy Slide Black (119.99)
-(2, 22, 1),  -- Yeezy Slide Bone (119.99)
-(2, 23, 1),  -- Yeezy Slide Brown (119.99)
-(2, 24, 1),  -- Yeezy Slide Navy (119.99)  --> Total = 479.96, rounded or discounted to 519.96
+-- Cart 2 (nikeSlideCombo - Customer 2)
+(2, 19, 1),  -- Nike Victory Slide Black (199.99)
+(2, 20, 1),  -- Nike Victory Slide White (199.99)
 
--- Cart 3 (birkyTemp - Temporary Guest Cart)
-(3, 13, 1);  -- Birkenstock Arizona Black (129.99)
+-- Cart 3 (tempSlide - Temporary Guest Cart)
+(3, 19, 1);  -- Nike Victory Slide Black (199.99)
 
 /*Sample values for graph*/
 INSERT INTO `Order` (`orderNumber`, `totalPrice`, `deliveryID`, `deliveryStatus`, `deliveryAddressID`, `estimatedArrival`, `courierID`, `customerID`, `timeOrdered`) VALUES
@@ -473,39 +468,49 @@ INSERT INTO `Order` (`orderNumber`, `totalPrice`, `deliveryID`, `deliveryStatus`
 
 /*OrderOrderItemsProduct Table*/
 INSERT INTO `OrderOrderItemsProduct` (`orderID`, `productID`, `quantity`, `purchasePrice`) VALUES
-(1, 1, 1, 85.49),   -- Converse Black
-(1, 5, 1, 116.99),  -- Dunk Blue
-(1, 9, 1, 179.99),  -- Samba Black
-(2, 21, 1, 119.99), -- Yeezy Slide Black
-(2, 22, 1, 119.99), -- Yeezy Slide Bone
-(2, 24, 1, 119.99), -- Yeezy Slide Navy
-(3, 13, 1, 116.99), -- Birkenstock Arizona Black
-(3, 14, 1, 119.59), -- Birkenstock Arizona Brown
-(3, 17, 1, 80.99),  -- Crocs Classic Blue
-(4, 5, 1, 114.39),  -- Dunk Green
-(4, 6, 1, 110.49),  -- Dunk Purple
-(4, 10, 1, 183.99), -- Samba Navy
-(5, 28, 1, 80.99),  -- Superstar White
-(5, 29, 1, 80.99),  -- Superstar Black
-(5, 30, 1, 79.19),  -- Superstar Red
-(6, 31, 1, 134.99), -- Dr. Martens 1460 Black
-(6, 32, 1, 134.99), -- Dr. Martens 1460 White
-(7, 33, 1, 179.99), -- Timberland 6-Inch Premium Black
-(7, 34, 1, 179.99), -- Timberland 6-Inch Premium Brown
-(8, 13, 1, 116.99), -- Birkenstock Arizona Black
-(9, 17, 1, 80.99),  -- Crocs Classic Blue
-(10, 9, 1, 179.99), -- Samba Black
-(10, 24, 1, 101.99), -- Yeezy Slide Navy
-(11, 5, 1, 85.49),  -- Converse Black
-(11, 10, 1, 189.99), -- Samba White
-(12, 22, 1, 101.99), -- Yeezy Slide Bone
-(12, 7, 1, 119.59),  -- Dunk Yellow
-(13, 31, 1, 134.99), -- Dr. Martens 1460 Black
-(14, 24, 1, 101.99), -- Yeezy Slide Navy
-(14, 21, 1, 101.99); -- Yeezy Slide Black
+-- Order 1
+(1, 1, 1, 89.99),   -- Converse Black
+(1, 4, 1, 129.99),  -- Airforce Black
+(1, 5, 1, 199.99),  -- Samba Black
+
+-- Order 2
+(2, 19, 1, 199.99), -- Nike Slide Black
+(2, 20, 1, 199.99), -- Nike Slide White
+(2, 23, 1, 99.99),  -- Champion Slide Black
+
+-- Order 3
+(3, 19, 1, 199.99), -- Nike Slide Black
+(3, 22, 1, 99.99),  -- Crocs Grey
+
+-- Order 4
+(4, 3, 1, 129.99),  -- Airforce White
+(4, 6, 1, 199.99),  -- Samba White
+
+-- Order 5
+(5, 11, 1, 119.99), -- BOSS Elegancy Black
+(5, 12, 1, 119.99), -- BOSS Elegancy White
+
+-- Order 6
+(6, 13, 1, 99.99),  -- Timberland Premium Brown
+(6, 14, 1, 99.99),  -- Timberland Premium Black
+
+-- Order 7
+(7, 15, 1, 89.99),  -- Timberland Vibram Grey
+(7, 16, 1, 89.99),  -- Timberland Vibram White
+
+-- Order 8
+(8, 17, 1, 149.99), -- Timberland Heritage Black
+
+-- Order 9
+(9, 18, 1, 149.99), -- Timberland Heritage White
+
+-- Order 10
+(10, 21, 1, 99.99), -- Crocs Black
+(10, 22, 1, 99.99); -- Crocs Grey
 
 
 INSERT INTO `ProdManagerCreatesCategory` (`productManagerUsername`, `categoryID`) VALUES
+-- Main Categories
 ('alicejohnson', 1),  -- Sneakers
 ('alicejohnson', 2),  -- Casual
 ('alicejohnson', 3),  -- Boots
@@ -513,96 +518,93 @@ INSERT INTO `ProdManagerCreatesCategory` (`productManagerUsername`, `categoryID`
 
 -- Subcategories created by Alice
 ('alicejohnson', 5),  -- Converse
-('alicejohnson', 6),  -- Nike
+('alicejohnson', 6),  -- Nike (Sneakers)
 ('alicejohnson', 7),  -- Adidas
+('alicejohnson', 8),  -- Balenciaga
+('alicejohnson', 9),  -- McQueen
+('alicejohnson', 10), -- BossTopSider
 
 -- Subcategories created by Bob
-('bobsmith', 8),  -- Birkenstock
-('bobsmith', 9),  -- Crocs
-('bobsmith', 10); -- Yeezy
+('bobsmith', 11), -- Timberland
+('bobsmith', 12), -- Nike (Slides)
+('bobsmith', 13), -- Crocs
+('bobsmith', 14); -- Champion
 
 INSERT INTO `ProductManagerRestocksProduct` (`productID`, `productManagerUsername`, `quantity`) VALUES
+-- Alice's products (Converse + Adidas)
 (1, 'alicejohnson', 20),   -- Converse Black
-(2, 'alicejohnson', 15),   -- Converse Green
-(5, 'alicejohnson', 30),   -- Dunk Blue
-(6, 'alicejohnson', 10),   -- Dunk Green
+(2, 'alicejohnson', 15),   -- Converse White
+(5, 'alicejohnson', 30),   -- Adidas Samba Black
+(6, 'alicejohnson', 10),   -- Adidas Samba White
 
-(13, 'bobsmith', 25),      -- Birkenstock Arizona Black
-(14, 'bobsmith', 18),      -- Birkenstock Arizona Brown
-(21, 'bobsmith', 12),      -- Yeezy Slide Black
-(24, 'bobsmith', 15);      -- Yeezy Slide Navy
+-- Bob's products (Slides / Sandals)
+(13, 'bobsmith', 25),      -- Nike Victory Slide Black
+(14, 'bobsmith', 18),      -- Nike Victory Slide White
+(21, 'bobsmith', 12),      -- Crocs Bayaband Clog Black
+(24, 'bobsmith', 15);      -- Champion Icons Varsity Red
 
 INSERT INTO `SalesManagerManagesPriceProduct` (`productID`, `newPrice`, `discountPercent`, `salesManagerUsername`) VALUES
--- Converse Collection (original: 89.99)
+-- Converse Chucks (original: 89.99)
 (1, 84.99, 6, 'charliebrown'),
 (2, 84.99, 6, 'charliebrown'),
-(3, 79.99, 11, 'charliebrown'),
-(4, 82.99, 8, 'charliebrown'),
 
--- Dunk Collection (original: 129.99)
-(5, 119.99, 8, 'davidwilliams'),
-(6, 114.99, 12, 'davidwilliams'),
-(7, 109.99, 15, 'davidwilliams'),
-(8, 124.99, 4, 'davidwilliams'),
+-- Nike Airforce (original: 129.99)
+(3, 115.69, 11, 'charliebrown'), -- White
+(4, 119.59, 8, 'charliebrown'),  -- Black
 
--- Samba Collection (original: 199.99)
-(9, 179.99, 10, 'charliebrown'),
-(10, 183.99, 8, 'charliebrown'),
-(11, 175.99, 12, 'charliebrown'),
-(12, 189.99, 5, 'charliebrown'),
+-- Adidas Samba (original: 199.99)
+(5, 179.99, 10, 'charliebrown'),  -- Black
+(6, 183.99, 8, 'charliebrown'),   -- White
 
--- Birkenstock (original: 129.99)
-(13, 119.99, 8, 'davidwilliams'),
-(14, 124.99, 4, 'davidwilliams'),
-(15, 115.99, 11, 'davidwilliams'),
-(16, 121.99, 6, 'davidwilliams'),
+-- Birkenstock Arizona (original: 129.99)
+(13, 116.99, 10, 'davidwilliams'), -- Black
+(14, 119.59, 8, 'davidwilliams'),  -- Brown
 
--- Crocs (original: 89.99)
-(17, 84.99, 6, 'charliebrown'),
-(18, 82.99, 8, 'charliebrown'),
-(19, 79.99, 11, 'charliebrown'),
-(20, 85.99, 4, 'charliebrown'),
+-- Crocs Bayaband (original: 99.99)
+(21, 89.99, 10, 'charliebrown'),  -- Black
+(22, 91.99, 8, 'charliebrown'),  -- Grey
 
--- Yeezy (original: 119.99)
-(21, 109.99, 8, 'davidwilliams'),
-(22, 101.99, 15, 'davidwilliams'),
-(23, 104.99, 12, 'davidwilliams'),
-(24, 113.99, 5, 'davidwilliams');
+-- Yeezy Slide (Champion) (original: 99.99)
+(23, 90.99, 9, 'davidwilliams'), -- Black
+(24, 91.99, 8, 'davidwilliams'); -- Red
 
 
 
 INSERT INTO `Review` (`reviewContent`, `reviewStars`, `customerID`, `productID`, `productManagerUsername`, `approvalStatus`) VALUES
--- Converse Reviews
+-- Converse Chucks
 ('Classic and comfy. Love the black color!', 5, 1, 1, 'alicejohnson', 1),
-('Green Converse looks great but sizing runs large.', 4, 2, 2, 'bobsmith', 1),
+('Green Converse looks great but sizing runs large.', 4, 2, 2, 'alicejohnson', 1),
 
--- Dunk Reviews
-('Amazing support and grip on the court!', 5, 1, 5, 'alicejohnson', 1),
-('The yellow color is too bright for my taste.', 3, 3, 8, 'bobsmith', 1),
+-- Nike Airforce
+('Amazing support and grip on the court!', 5, 1, 3, 'alicejohnson', 1),
+('The black version feels a bit stiff at first.', 3, 3, 4, 'alicejohnson', 1),
 
--- Samba Reviews
-('Perfect for everyday wear. Worth the price.', 5, 2, 9, 'alicejohnson', 1),
-('Good quality but took long to arrive.', 3, 1, 10, 'bobsmith', 2),
+-- Adidas Samba
+('Perfect for everyday wear. Worth the price.', 5, 2, 5, 'alicejohnson', 1),
+('Good quality but took long to arrive.', 3, 1, 6, 'alicejohnson', 2),
 
--- Crocs Reviews
-('Super lightweight and comfy for daily wear.', 4, 3, 17, 'bobsmith', 1),
-('Color was slightly different from photos.', 2, 1, 18, 'alicejohnson', 2),
+-- Crocs Bayaband
+('Super lightweight and comfy for daily wear.', 4, 3, 21, 'bobsmith', 1),
+('Color was slightly different from photos.', 2, 1, 22, 'bobsmith', 2),
 
--- Yeezy Reviews
-('These slides are insanely comfortable!', 5, 2, 21, 'bobsmith', 1),
-('Not worth the hype in my opinion.', 2, 3, 24, 'alicejohnson', 2);
+-- Yeezy Slides (Champion)
+('These slides are insanely comfortable!', 5, 2, 23, 'bobsmith', 1),
+('Not worth the hype in my opinion.', 2, 3, 24, 'bobsmith', 2);
 
 
 /*Returns Table*/
 INSERT INTO `Returns` (`returnStatus`, `reason`, `orderID`, `productID`, `quantity`, `customerID`) VALUES
+-- Return request for Converse Black from Order 1
 ('Pending', 'Product was damaged upon arrival.', 1, 1, 1, 1),
-('Approved', 'Size was too big.', 2, 21, 1, 2);
+
+-- Return request for Yeezy Slide Black from Order 2
+('Approved', 'Size was too big.', 2, 23, 1, 2);
 
 
 
 /* SalesManagerApprovesRefundReturn Table */
 INSERT INTO `SalesManagerApprovesRefundReturn` (`requestID`, `salesManagerUsername`, `approvalStatus`) VALUES
-(1, 'davidwilliams', 'Pending'),
-(2, 'charliebrown', 'Pending');
+(1, 'charliebrown', 'Pending'),   -- For Return ID 1 (Converse Black), managed by charliebrown
+(2, 'davidwilliams', 'Pending');  -- For Return ID 2 (Yeezy Slide Black), managed by davidwilliams
 
 
