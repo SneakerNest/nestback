@@ -1,9 +1,14 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import PDFDocument from 'pdfkit';
 import { PassThrough } from 'stream';
 import { transporter } from './mailTransporter.js';
 import { getOrderDataWrapper } from '../controllers/orderController.js';
 import { getAddressWrapper } from '../controllers/addressController.js';
+
+// Get current directory path for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function writeInvoice(data) {
     const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
