@@ -116,19 +116,27 @@ const createOrder = async (req, res) => {
     const estimatedArrival = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
     const [orderResult] = await conn.query(
-      'INSERT INTO `Order` (orderNumber, totalPrice, deliveryID, deliveryStatus, deliveryAddressID, estimatedArrival, customerID) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [orderNumber, cart.totalPrice, deliveryID, 'Processing', customer.addressID, estimatedArrival, customer.customerID]
+      'INSERT INTO `Order` (orderNumber, totalPrice, deliveryID, deliveryStatus, deliveryAddressID, estimatedArrival, customerID, cartID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [orderNumber, cart.totalPrice, deliveryID, 'Processing', customer.addressID, estimatedArrival, customer.customerID, cart.cartID]
     );
 
+    let orderTotal = 0;
     for (let item of cartItems) {
       const [[product]] = await conn.query('SELECT unitPrice, discountPercentage FROM Product WHERE productID = ?', [item.productID]);
       const purchasePrice = product.unitPrice * (1 - product.discountPercentage / 100);
-      await conn.query('INSERT INTO OrderOrderItemsProduct (orderID, productID, quantity, purchasePrice) VALUES (?, ?, ?, ?)', [orderResult.insertId, item.productID, item.quantity, purchasePrice]);
+      await conn.query(
+        'INSERT INTO OrderOrderItemsProduct (orderID, productID, quantity, purchasePrice) VALUES (?, ?, ?, ?)', 
+        [orderResult.insertId, item.productID, item.quantity, purchasePrice]
+      );
+      orderTotal += purchasePrice * item.quantity;
       await conn.query('UPDATE Product SET stock = stock - ? WHERE productID = ?', [item.quantity, item.productID]);
     }
 
+    await conn.query('UPDATE `Order` SET totalPrice = ? WHERE orderID = ?', [orderTotal, orderResult.insertId]);
+
     await conn.query('DELETE FROM CartContainsProduct WHERE cartID = ?', [cart.cartID]);
     await conn.query('UPDATE Cart SET totalPrice = 0, numProducts = 0 WHERE cartID = ?', [cart.cartID]);
+    
     await conn.commit();
     res.status(201).json({ msg: 'Order created', orderID: orderResult.insertId });
   } catch (err) {

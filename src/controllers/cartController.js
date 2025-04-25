@@ -117,10 +117,21 @@ const getOrCreateCart = async (req, res) => {
 
 const addProductToCart = async (req, res) => {
   try {
-    const { productID } = req.params; // Get product ID from the request parameter
+    const { productID } = req.params;
     let { fingerprint } = req.cookies;
+    const customerID = req.body.customerID || null;
 
-    const customerID = req.body.customerID || null; // Get customerID if the user is logged in, otherwise null
+    // Check product stock first
+    const [productStock] = await pool.query(
+      'SELECT stock FROM Product WHERE productID = ?',
+      [productID]
+    );
+
+    if (!productStock.length || productStock[0].stock === 0) {
+      return res.status(400).json({ 
+        error: 'Unable to add product to cart. Product is out of stock.'
+      });
+    }
 
     let cartID;
 
@@ -190,19 +201,18 @@ const addProductToCart = async (req, res) => {
       [cartID, productID]
     );
 
-    // Update cart totals: numProducts and totalPrice
+    // Update cart totals
     await pool.query(
       'UPDATE Cart SET numProducts = numProducts + 1, totalPrice = totalPrice + (SELECT unitPrice * (1 - discountPercentage/100) FROM Product WHERE productID = ?) WHERE cartID = ?',
       [productID, cartID]
     );
 
-    // Send response with success message and cart details
     return res.status(201).json({
       message: 'Product added to cart successfully.',
-      cartID: cartID, // Return the cart ID
-      loggedIn: !!customerID, // Return whether the user is logged in
-      fingerprint: fingerprint, // Return the fingerprint
-      customerID: customerID // Return the customerID
+      cartID: cartID,
+      loggedIn: !!customerID,
+      fingerprint: fingerprint,
+      customerID: customerID
     });
   } catch (err) {
     console.error(err);

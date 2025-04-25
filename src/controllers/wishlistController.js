@@ -167,6 +167,18 @@ const moveToCart = async (req, res) => {
       if (!productID) {
         return res.status(400).json({ error: 'Product ID is required.' });
       }
+
+      // Check product stock and get product details
+      const [productDetails] = await pool.query(
+        'SELECT stock, unitPrice, discountPercentage FROM Product WHERE productID = ?',
+        [productID]
+      );
+
+      if (!productDetails.length || productDetails[0].stock === 0) {
+        return res.status(400).json({ 
+          error: 'Unable to move product to cart. Product is out of stock.'
+        });
+      }
   
       // 1. Check if the user has a wishlist
       const [wishlistRows] = await pool.query(
@@ -200,8 +212,8 @@ const moveToCart = async (req, res) => {
       if (cartRows.length === 0) {
         // If not, create a new permanent cart
         const [newCart] = await pool.query(
-          'INSERT INTO Cart (customerID, temporary) VALUES (?, false)',
-          [customerID]
+          'INSERT INTO Cart (totalPrice, numProducts, customerID, temporary) VALUES (?, ?, ?, ?)',
+          [0, 0, customerID, false]
         );
         cartID = newCart.insertId;
       } else {
@@ -213,18 +225,28 @@ const moveToCart = async (req, res) => {
         'INSERT INTO CartContainsProduct (cartID, productID, quantity) VALUES (?, ?, 1)',
         [cartID, productID]
       );
+
+      // 5. Update cart totals
+      const discountedPrice = productDetails[0].unitPrice * (1 - productDetails[0].discountPercentage / 100);
+      await pool.query(
+        'UPDATE Cart SET numProducts = numProducts + 1, totalPrice = totalPrice + ? WHERE cartID = ?',
+        [discountedPrice, cartID]
+      );
   
-      // 5. Remove product from wishlist
+      // 6. Remove product from wishlist
       await pool.query(
         'DELETE FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
         [wishlistID, productID]
       );
   
-      res.status(200).json({ message: 'Product moved to cart successfully.' });
+      res.status(200).json({ 
+        message: 'Product moved to cart successfully.',
+        cartID: cartID
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to move product to cart.' });
     }
-  };
+};
 
 export { addProductToWishlist, viewWishlist, removeProductFromWishlist, moveToCart };

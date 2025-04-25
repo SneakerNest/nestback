@@ -25,7 +25,12 @@ router.get('/order/courier/:courierid', authenticateToken, getOrderByCourierId);
 
 router.get('/order/:id', authenticateToken, getOrderById);
 
-router.put('/order/:id/status', authenticateToken, updateDeliveryStatus);
+// Only product managers can update order status
+router.put('/order/:id/status', 
+    authenticateToken, 
+    authenticateRole(['productManager']), 
+    updateDeliveryStatus
+);
 
 router.get('/order/:id/status', authenticateToken, getDeliveryStatus);
 

@@ -532,41 +532,41 @@ INSERT INTO `ProdManagerCreatesCategory` (`productManagerUsername`, `categoryID`
 
 INSERT INTO `ProductManagerRestocksProduct` (`productID`, `productManagerUsername`, `quantity`) VALUES
 -- Alice's products (Converse + Adidas)
-(1, 'alicejohnson', 20),   -- Converse Black
-(2, 'alicejohnson', 15),   -- Converse White
-(5, 'alicejohnson', 30),   -- Adidas Samba Black
-(6, 'alicejohnson', 10),   -- Adidas Samba White
+(1, 'alicejohnson', 0),   -- Converse Black
+(2, 'alicejohnson', 0),   -- Converse White
+(5, 'alicejohnson', 0),   -- Adidas Samba Black
+(6, 'alicejohnson', 0),   -- Adidas Samba White
 
 -- Bob's products (Slides / Sandals)
-(13, 'bobsmith', 25),      -- Nike Victory Slide Black
-(14, 'bobsmith', 18),      -- Nike Victory Slide White
-(21, 'bobsmith', 12),      -- Crocs Bayaband Clog Black
-(24, 'bobsmith', 15);      -- Champion Icons Varsity Red
+(13, 'bobsmith', 0),      -- Nike Victory Slide Black
+(14, 'bobsmith', 0),      -- Nike Victory Slide White
+(21, 'bobsmith', 0),      -- Crocs Bayaband Clog Black
+(24, 'bobsmith', 0);      -- Champion Icons Varsity Red
 
 INSERT INTO `SalesManagerManagesPriceProduct` (`productID`, `newPrice`, `discountPercent`, `salesManagerUsername`) VALUES
 -- Converse Chucks (original: 89.99)
-(1, 84.99, 6, 'charliebrown'),
-(2, 84.99, 6, 'charliebrown'),
+(1, 89.99, 0, 'charliebrown'),
+(2, 89.99, 0, 'charliebrown'),
 
 -- Nike Airforce (original: 129.99)
-(3, 115.69, 11, 'charliebrown'), -- White
-(4, 119.59, 8, 'charliebrown'),  -- Black
+(3, 129.99, 0, 'charliebrown'), -- White
+(4, 129.99, 0, 'charliebrown'),  -- Black
 
 -- Adidas Samba (original: 199.99)
-(5, 179.99, 10, 'charliebrown'),  -- Black
-(6, 183.99, 8, 'charliebrown'),   -- White
+(5, 199.99, 0, 'charliebrown'),  -- Black
+(6, 199.99, 0, 'charliebrown'),   -- White
 
 -- Birkenstock Arizona (original: 129.99)
-(13, 116.99, 10, 'davidwilliams'), -- Black
-(14, 119.59, 8, 'davidwilliams'),  -- Brown
+(13, 129.99, 0, 'davidwilliams'), -- Black
+(14, 129.99, 0, 'davidwilliams'),  -- Brown
 
 -- Crocs Bayaband (original: 99.99)
-(21, 89.99, 10, 'charliebrown'),  -- Black
-(22, 91.99, 8, 'charliebrown'),  -- Grey
+(21, 99.99, 0, 'charliebrown'),  -- Black
+(22, 99.99, 0, 'charliebrown'),  -- Grey
 
 -- Yeezy Slide (Champion) (original: 99.99)
-(23, 90.99, 9, 'davidwilliams'), -- Black
-(24, 91.99, 8, 'davidwilliams'); -- Red
+(23, 99.99, 0, 'davidwilliams'), -- Black
+(24, 99.99, 0, 'davidwilliams'); -- Red
 
 
 

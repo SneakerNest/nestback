@@ -52,7 +52,7 @@ const getOrderByCourierId = async (req, res) => {
 
 const getOrderById = async (req, res) => {
     try {
-      id = req.params.id;
+      const id = req.params.id;  // Added const declaration
       let sql = 'SELECT orderID, deliveryID, deliveryStatus, deliveryAddressID, estimatedArrival, courierID FROM `Order` WHERE orderID = ?';
       const [results, fields] = await pool.query(sql, [id]);
       if (results.length === 0) {
@@ -85,15 +85,20 @@ const updateDeliveryStatus = async (req, res) => {
 
 const getDeliveryStatus = async (req, res) => {
     try {
-      id = req.params.id;
+      const id = req.params.id;  // Added const declaration
       let sql = 'SELECT deliveryStatus FROM `Order` WHERE orderID = ?';
       const [results, fields] = await pool.query(sql, [id]);
-      res.status(200).json(results[0]);}
-    catch(err)  {
-      console.log(err);
-      res.status(500).json({msg: "Error retrieving delivery status"});
+      
+      if (results.length === 0) {
+        return res.status(404).json({ msg: "Order not found" });
+      }
+      
+      res.status(200).json(results[0]);
+    } catch(err) {
+      console.error(err);  // Changed to console.error for better error logging
+      res.status(500).json({ msg: "Error retrieving delivery status" });
     }
-}
+};
 
 export {
   getEstimatedTimeById,
