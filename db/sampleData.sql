@@ -19,7 +19,7 @@ INSERT INTO Category (name, description, parentCategoryID, image) VALUES
 INSERT INTO Category (name, description, parentCategoryID, image) VALUES
 ('Balenciaga', 'Avant-garde design meets luxury fashion—oversized soles and bold aesthetics redefine everyday sneakers.', 2, 'BalenciagaPurple.jpg'),
 ('McQueen', 'Luxury low-top sneakers combining minimalist elegance with chunky silhouettes for statement styling.', 2, 'McqueenBlack.jpeg'),
-('BossTopSider', 'Classic leather sneakers that balance professional style with casual comfort—ideal for smart-casual outfits.', 2, 'TopsiderBlack.jpg');
+('Newbalance', 'Classic leather sneakers that balance professional style with casual comfort—ideal for smart-casual outfits.', 2, 'NewabalanceBlack.jpeg');
 /*-- Subcategories for Boots*/
 INSERT INTO Category (name, description, parentCategoryID, image) VALUES
 
@@ -30,7 +30,7 @@ INSERT INTO Category (name, description, parentCategoryID, image) VALUES
 INSERT INTO Category (name, description, parentCategoryID, image) VALUES
 ('Nike', 'Streamlined slides with plush cushioning and sleek straps—perfect for casual lounging or poolside vibes.', 4, 'NikevictoryBlack.jpeg'),
 ('Crocs', 'Ultra-light and water-friendly clogs with breathable comfort—great for active and relaxed wear alike.', 4, 'CrocsGrey.jpeg'),
-('Champion', 'Slip-on sandals with soft foam and futuristic styling, offering ultimate comfort with everyday versatility.', 4, 'ChampionRed.jpeg');
+('Yeezy', 'Slip-on sandals with soft foam and futuristic styling, offering ultimate comfort with everyday versatility.', 4, 'YeezyBlack.jpeg');
 
 
 /*-- Address Table*/
@@ -97,8 +97,8 @@ VALUES
 /*-- Products for Topsider/BossTopSider/Casual */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(30, 'BOSS Elegancy', 119.99, 2, 0, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'BossTopSider', 1, 'EVA Foam', 6, 'SN-BT-BLK', 80, 'Black'),
-(30, 'BOSS Elegancy', 119.99, 2, 0, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'BossTopSider', 1, 'EVA Foam', 6, 'SN-BT-WHT', 80, 'White');
+(30, 'Newbalance 9060', 119.99, 2, 0, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'Newbalance', 1, 'EVA Foam', 6, 'SN-NB-BLK', 80, 'Black'),
+(30, 'Newbalance 9060', 119.99, 2, 0, 'Sleek, futuristic comfort with a soft foam build and serrated sole.', 'Newbalance', 1, 'EVA Foam', 6, 'SN-NB-WHT', 80, 'White');
 
 
 /*-- Products for Timberlandpremium*/
@@ -111,8 +111,8 @@ VALUES
 /*-- Products for Timberlandvibram */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(40, 'Timberland Vibram', 89.99, 3, 0, 'A slip-on insulated boot with a padded, fold-over design and rugged outsole for cold-weather comfort and grip.', 'Timberland', 1, 'Leather', 12, 'SN-TV-GRY', 50, 'Grey'),
-(40, 'Timberland Vibram', 89.99, 3, 0, 'A slip-on insulated boot with a padded, fold-over design and rugged outsole for cold-weather comfort and grip.', 'Timberland', 1, 'Leather', 12, 'SN-TV-WHT', 50, 'White');
+(40, 'Timberland Field', 89.99, 3, 0, 'A slip-on insulated boot with a padded, fold-over design and rugged outsole for cold-weather comfort and grip.', 'Timberland', 1, 'Leather', 12, 'SN-TF-GRY', 50, 'Grey'),
+(40, 'Timberland Field', 89.99, 3, 0, 'A slip-on insulated boot with a padded, fold-over design and rugged outsole for cold-weather comfort and grip.', 'Timberland', 1, 'Leather', 12, 'SN-TF-WHT', 50, 'White');
 
 
 /*-- Products for Timberland Heritage */
@@ -136,8 +136,8 @@ VALUES
 /*-- Products for Champion  */
 INSERT INTO Product (stock, name, unitPrice, overallRating, discountPercentage, description, brand, supplierID, material, warrantyMonths, serialNumber, popularity, color)
 VALUES
-(50, 'Champion Icons Varsity', 99.99, 4, 0, 'A sporty open-toe slide sandal featuring a wide branded strap and cushioned footbed for casual wear.', 'Champion', 1, 'EVA', 12, 'SN-CH-BLK', 60, 'Black'),
-(50, 'Champion Icons Varsity', 99.99, 4, 0, 'A sporty open-toe slide sandal featuring a wide branded strap and cushioned footbed for casual wear.', 'Champion', 1, 'EVA', 12, 'SN-CH-RED', 60, 'Red');
+(50, 'Yeezy Slides', 99.99, 4, 0, 'A sporty open-toe slide sandal featuring a wide branded strap and cushioned footbed for casual wear.', 'Yeezy', 1, 'EVA', 12, 'SN-YZ-BLK', 60, 'Black'),
+(50, 'Yeezy Slides', 99.99, 4, 0, 'A sporty open-toe slide sandal featuring a wide branded strap and cushioned footbed for casual wear.', 'Yeezy', 1, 'EVA', 12, 'SN-YZ-WHT', 60, 'White');
 
 /*-- Pictures Table*/
 /* Inserting three pictures for each productID*/
@@ -175,10 +175,10 @@ INSERT INTO Pictures (productID, picturePath) VALUES
 (10, 'McqueenWhite.jpeg'),
 
 
-(11, 'TopsiderBlack.jpg'),
+(11, 'NewbalanceBlack.jpeg'),
 
 
-(12, 'TopsiderWhite.jpg'),
+(12, 'NewbalanceWhite.jpeg'),
 
 /*-- Boots*/
 
@@ -189,10 +189,10 @@ INSERT INTO Pictures (productID, picturePath) VALUES
 (14, 'TimberlandpremiumBlack.jpeg'),
 
 
-(15, 'TimberlandVibramGrey.jpeg'),
+(15, 'TimberlandfieldGrey.jpeg'),
 
 
-(16, 'TimberlandVibramWhite.jpeg'),
+(16, 'TimberlandfieldWhite.jpeg'),
 
 
 (17, 'TimberlandHeritageBlack.jpeg'),
@@ -213,10 +213,10 @@ INSERT INTO Pictures (productID, picturePath) VALUES
 (22, 'CrocsGrey.jpeg'),
 
 
-(23, 'ChampionBlack.jpeg'),
+(23, 'YeezyBlack.jpeg'),
 
 
-(24, 'ChampionRed.jpeg');
+(24, 'YeezyWhite.jpeg');
 
 
 
@@ -335,7 +335,7 @@ insert into `Wishlist` (`customerID`) values
 
 INSERT INTO `WishlistItems` (`wishlistID`, `productID`) VALUES 
 (1, 1),  -- Converse Black
-(1, 3),  -- Nike Airforce (used as Dunk Blue)
+(1, 3),  -- Nike Airforce 
 (1, 5);  -- Adidas Samba Black
 
 
@@ -476,7 +476,7 @@ INSERT INTO `OrderOrderItemsProduct` (`orderID`, `productID`, `quantity`, `purch
 -- Order 2
 (2, 19, 1, 199.99), -- Nike Slide Black
 (2, 20, 1, 199.99), -- Nike Slide White
-(2, 23, 1, 99.99),  -- Champion Slide Black
+(2, 23, 1, 99.99),  -- Yeezy Slide Black
 
 -- Order 3
 (3, 19, 1, 199.99), -- Nike Slide Black
@@ -487,16 +487,16 @@ INSERT INTO `OrderOrderItemsProduct` (`orderID`, `productID`, `quantity`, `purch
 (4, 6, 1, 199.99),  -- Samba White
 
 -- Order 5
-(5, 11, 1, 119.99), -- BOSS Elegancy Black
-(5, 12, 1, 119.99), -- BOSS Elegancy White
+(5, 11, 1, 119.99), -- Newbalance Black
+(5, 12, 1, 119.99), -- Newbalance White
 
 -- Order 6
 (6, 13, 1, 99.99),  -- Timberland Premium Brown
 (6, 14, 1, 99.99),  -- Timberland Premium Black
 
 -- Order 7
-(7, 15, 1, 89.99),  -- Timberland Vibram Grey
-(7, 16, 1, 89.99),  -- Timberland Vibram White
+(7, 15, 1, 89.99),  -- Timberland field Grey
+(7, 16, 1, 89.99),  -- Timberland field White
 
 -- Order 8
 (8, 17, 1, 149.99), -- Timberland Heritage Black
@@ -522,13 +522,13 @@ INSERT INTO `ProdManagerCreatesCategory` (`productManagerUsername`, `categoryID`
 ('alicejohnson', 7),  -- Adidas
 ('alicejohnson', 8),  -- Balenciaga
 ('alicejohnson', 9),  -- McQueen
-('alicejohnson', 10), -- BossTopSider
+('alicejohnson', 10), -- Newbalance
 
 -- Subcategories created by Bob
 ('bobsmith', 11), -- Timberland
 ('bobsmith', 12), -- Nike (Slides)
 ('bobsmith', 13), -- Crocs
-('bobsmith', 14); -- Champion
+('bobsmith', 14); -- Yeezy
 
 INSERT INTO `ProductManagerRestocksProduct` (`productID`, `productManagerUsername`, `quantity`) VALUES
 -- Alice's products (Converse + Adidas)
@@ -541,7 +541,7 @@ INSERT INTO `ProductManagerRestocksProduct` (`productID`, `productManagerUsernam
 (13, 'bobsmith', 0),      -- Nike Victory Slide Black
 (14, 'bobsmith', 0),      -- Nike Victory Slide White
 (21, 'bobsmith', 0),      -- Crocs Bayaband Clog Black
-(24, 'bobsmith', 0);      -- Champion Icons Varsity Red
+(24, 'bobsmith', 0);      -- Yeezy Slide White
 
 INSERT INTO `SalesManagerManagesPriceProduct` (`productID`, `newPrice`, `discountPercent`, `salesManagerUsername`) VALUES
 -- Converse Chucks (original: 89.99)
@@ -564,7 +564,7 @@ INSERT INTO `SalesManagerManagesPriceProduct` (`productID`, `newPrice`, `discoun
 (21, 99.99, 0, 'charliebrown'),  -- Black
 (22, 99.99, 0, 'charliebrown'),  -- Grey
 
--- Yeezy Slide (Champion) (original: 99.99)
+-- Yeezy Slide  (original: 99.99)
 (23, 99.99, 0, 'davidwilliams'), -- Black
 (24, 99.99, 0, 'davidwilliams'); -- Red
 
@@ -587,7 +587,7 @@ INSERT INTO `Review` (`reviewContent`, `reviewStars`, `customerID`, `productID`,
 ('Super lightweight and comfy for daily wear.', 4, 3, 21, 'bobsmith', 1),
 ('Color was slightly different from photos.', 2, 1, 22, 'bobsmith', 2),
 
--- Yeezy Slides (Champion)
+-- Yeezy Slides 
 ('These slides are insanely comfortable!', 5, 2, 23, 'bobsmith', 1),
 ('Not worth the hype in my opinion.', 2, 3, 24, 'bobsmith', 2);
 
