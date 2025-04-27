@@ -374,9 +374,11 @@ export const getProductById = async (req, res) => {
         const query = `
             SELECT 
                 p.*,
+                s.name as supplierName,
                 GROUP_CONCAT(DISTINCT pic.picturePath) as pictures
             FROM Product p
             LEFT JOIN Pictures pic ON p.productID = pic.productID
+            LEFT JOIN Supplier s ON p.supplierID = s.supplierID
             WHERE p.productID = ? AND p.showProduct = true
             GROUP BY 
                 p.productID, 
@@ -394,7 +396,8 @@ export const getProductById = async (req, res) => {
                 p.material,
                 p.warrantyMonths,
                 p.serialNumber,
-                p.popularity
+                p.popularity,
+                s.name
         `;
 
         const [products] = await pool.query(query, [productId]);

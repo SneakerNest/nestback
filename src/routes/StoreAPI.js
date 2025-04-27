@@ -27,6 +27,9 @@ import {
 // Import authentication middleware
 import { authenticateToken, authenticateRole } from '../middleware/auth-handler.js';
 
+// Import database pool
+import { pool } from '../config/database.js';
+
 const router = Router();
 
 // Sample sanity route
@@ -122,6 +125,49 @@ router.put('/reviews/:reviewId/approve',
     authenticateRole(['productManager']), 
     (req, res) => {
         return approveReviewComment(req, res);
+});
+
+// ===== CUSTOMER AND USER ROUTES =====
+
+// Get customer details by ID
+router.get('/customers/:id', async (req, res) => {
+  try {
+    const [results] = await pool.query(
+      `SELECT c.customerID, c.username, u.name 
+       FROM Customer c 
+       JOIN USERS u ON c.username = u.username 
+       WHERE c.customerID = ?`,
+      [req.params.id]
+    );
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+    
+    res.json(results[0]);
+  } catch (error) {
+    console.error('Error fetching customer:', error);
+    res.status(500).json({ message: 'Error fetching customer data' });
+  }
+});
+
+// Get user details by username
+router.get('/users/:username', async (req, res) => {
+  try {
+    const [results] = await pool.query(
+      'SELECT username, name, email FROM USERS WHERE username = ?',
+      [req.params.username]
+    );
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json(results[0]);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Error fetching user data' });
+  }
 });
 
 export default router;
