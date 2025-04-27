@@ -92,7 +92,11 @@ const getOrCreateCart = async (req, res) => {
 
     // Fetch products in the cart
     const [cartProducts] = await pool.query(
-      'SELECT p.productID, p.name, p.unitPrice, p.discountPercentage, ccp.quantity FROM CartContainsProduct ccp JOIN Product p ON ccp.productID = p.productID WHERE ccp.cartID = ?',
+      `SELECT p.productID, p.name, p.unitPrice, p.discountPercentage, ccp.quantity, 
+       (SELECT GROUP_CONCAT(picturePath) FROM Pictures WHERE productID = p.productID LIMIT 1) as picturePath
+       FROM CartContainsProduct ccp 
+       JOIN Product p ON ccp.productID = p.productID 
+       WHERE ccp.cartID = ?`,
       [cartID]
     );
 
