@@ -164,26 +164,111 @@ const loginUser = async (req, res) => {
 
 const getUserProfile = async (req, res) => {
   try {
-    const sql = 'SELECT * FROM Customer WHERE username = ?';
-    const [results] = await pool.query(sql, [req.username]);
-    if (results.length === 0) throw new Error('User not found');
+    const username = req.username;
 
-    const customer = results[0];
+    // Get user data first
+    const [userResults] = await pool.query(
+      'SELECT username, email, name FROM USERS WHERE username = ?',
+      [username]
+    );
 
-    const [results2] = await pool.query('SELECT * FROM Address WHERE addressID = ?', [customer.addressID]);
-    const address = results2[0];
+    if (userResults.length === 0) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
 
-    const [results3] = await pool.query('SELECT * FROM `Order` WHERE customerID = ?', [customer.customerID]);
-    const [results4] = await pool.query('SELECT * FROM USERS WHERE username = ?', [req.username]);
+    const role = await checkRole(username);
+    
+    // Get customer data with reviewed products info
+    const [customerResults] = await pool.query(
+      'SELECT * FROM Customer WHERE username = ?',
+      [username]
+    );
 
-    const user = results4[0];
-    delete user.password;
-    delete customer.customerID;
+    if (customerResults.length === 0) {
+      return res.status(404).json({ msg: 'Customer not found' });
+    }
 
-    return res.status(200).json({ customer, address, orders: results3, user });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ msg: 'Error getting user profile' });
+    const customer = customerResults[0];
+
+    // Updated query to properly check reviews for each product-order combination
+    const [orderResults] = await pool.query(
+      `SELECT 
+        o.*, 
+        p.productID, 
+        p.name as productName, 
+        p.unitPrice, 
+        p.overallRating,
+        oi.quantity,
+        EXISTS(
+          SELECT 1 FROM Review r 
+          WHERE r.productID = p.productID 
+          AND r.customerID = ? 
+          AND r.reviewContent IS NOT NULL
+        ) as reviewed,
+        EXISTS(
+          SELECT 1 FROM Review r 
+          WHERE r.productID = p.productID 
+          AND r.customerID = ? 
+          AND r.reviewStars IS NOT NULL
+        ) as rated
+       FROM \`Order\` o
+       LEFT JOIN OrderOrderItemsProduct oi ON o.orderID = oi.orderID
+       LEFT JOIN Product p ON oi.productID = p.productID
+       WHERE o.customerID = ?
+       AND o.deliveryStatus = 'Delivered'
+       ORDER BY o.timeOrdered DESC`,
+      [customer.customerID, customer.customerID, customer.customerID]
+    );
+
+    // Group products by order with review status
+    const orders = orderResults.reduce((acc, curr) => {
+      const order = acc.find(o => o.orderID === curr.orderID);
+      if (order) {
+        if (curr.productID) { // Only add if there's a product
+          order.products.push({
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            price: curr.unitPrice,
+            overallRating: curr.overallRating,
+            reviewed: curr.reviewed === 1,
+            rated: curr.rated === 1
+          });
+        }
+      } else {
+        acc.push({
+          orderID: curr.orderID,
+          orderNumber: curr.orderNumber,
+          timeOrdered: curr.timeOrdered,
+          deliveryStatus: curr.deliveryStatus,
+          totalPrice: curr.totalPrice,
+          products: curr.productID ? [{
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            price: curr.unitPrice,
+            overallRating: curr.overallRating,
+            reviewed: curr.reviewed === 1,
+            rated: curr.rated === 1
+          }] : []
+        });
+      }
+      return acc;
+    }, []);
+
+    const responseData = {
+      user: {
+        ...userResults[0],
+        role
+      },
+      customer: customer,
+      orders: orders
+    };
+
+    return res.status(200).json(responseData);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return res.status(500).json({ msg: 'Error fetching profile data' });
   }
 };
 

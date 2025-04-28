@@ -14,21 +14,28 @@ const getApprovedReviews = async (req, res) => {
   try {
     const sql = `
       SELECT 
-        reviewID,
-        CASE WHEN approvalStatus = 1 THEN reviewContent ELSE NULL END as reviewContent,
-        reviewStars,
-        customerID,
-        productID,
-        productManagerUsername,
-        approvalStatus
-      FROM Review 
-      WHERE productID = ? 
-      AND (reviewStars IS NOT NULL OR approvalStatus = 1)`;
+        r.reviewID,
+        r.reviewContent,
+        r.reviewStars,
+        r.customerID,
+        r.productID,
+        r.approvalStatus,
+        u.name as reviewerName,
+        CASE 
+          WHEN r.approvalStatus = 0 THEN 'Pending Approval'
+          WHEN r.approvalStatus = 1 THEN r.reviewContent
+          ELSE NULL 
+        END as displayContent
+      FROM Review r
+      JOIN Customer c ON r.customerID = c.customerID
+      JOIN USERS u ON c.username = u.username
+      WHERE r.productID = ? 
+      AND (r.reviewStars IS NOT NULL OR r.approvalStatus = 1)`;
     
     const [results] = await pool.query(sql, [req.params.id]);
     res.status(200).json(results);
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ msg: "Error retrieving reviews" });
   }
 };
@@ -65,13 +72,13 @@ const createReview = async (req, res) => {
       });
     }
 
-    // Check delivery status
+    // Check if customer has purchased the product
     const [deliveredOrders] = await pool.query(
       `SELECT o.orderID 
        FROM \`Order\` o 
-       JOIN OrderOrderItemsProduct oop ON o.orderID = oop.orderID 
+       JOIN OrderOrderItemsProduct oi ON o.orderID = oi.orderID 
        WHERE o.customerID = ? 
-       AND oop.productID = ? 
+       AND oi.productID = ? 
        AND o.deliveryStatus = 'Delivered'`,
       [customerID, productID]
     );
@@ -94,55 +101,38 @@ const createReview = async (req, res) => {
       // Handle rating addition (always approved)
       if (reviewStars && !current.reviewStars) {
         await pool.query(
-          'UPDATE Review SET reviewStars = ? WHERE reviewID = ?',
-          [reviewStars, current.reviewID]
+          'UPDATE Review SET reviewStars = ?, approvalStatus = ? WHERE reviewID = ?',
+          [reviewStars, 1, current.reviewID]
         );
         await updateProductRating(productID);
-      }
-
-      // Handle comment addition (needs approval)
-      if (reviewContent && !current.reviewContent) {
-        const [productManager] = await assignProductManager(productID);
-        await pool.query(
-          'UPDATE Review SET reviewContent = ?, productManagerUsername = ?, approvalStatus = 0 WHERE reviewID = ?',
-          [reviewContent, productManager.username, current.reviewID]
-        );
       }
 
       return res.status(200).json({ 
-        msg: `Update successful. ${reviewStars ? 'Rating visible immediately. ' : ''}${reviewContent ? 'Comment pending approval.' : ''}`
+        msg: 'Rating updated successfully',
+        status: 'approved'
       });
-
     } else {
-      // Creating new review
-      const [productManager] = reviewContent ? await assignProductManager(productID) : [{ username: null }];
-      
-      // Create the review
-      const [result] = await pool.query(
-        'INSERT INTO Review (reviewContent, reviewStars, customerID, productID, productManagerUsername, approvalStatus) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          reviewContent || null,
-          reviewStars || null,
-          customerID,
-          productID,
-          productManager.username,
-          0 // Start with pending status
-        ]
+      // Create new review with rating
+      await pool.query(
+        'INSERT INTO Review (productID, customerID, reviewStars, approvalStatus) VALUES (?, ?, ?, ?)',
+        [productID, customerID, reviewStars, 1]
       );
 
-      // If there's a rating, make it visible immediately
-      if (reviewStars) {
-        await updateProductRating(productID);
-      }
+      // Update product's overall rating
+      await updateProductRating(productID);
 
       return res.status(201).json({ 
-        msg: `Review created. ${reviewStars ? 'Rating visible immediately. ' : ''}${reviewContent ? 'Comment pending approval.' : ''}`
+        msg: 'Rating submitted successfully',
+        status: 'approved'
       });
     }
 
-  } catch (err) {
-    console.error("Error creating review:", err);
-    res.status(500).json({ msg: "Error creating review" });
+  } catch (error) {
+    console.error('Error creating review:', error);
+    return res.status(500).json({ 
+      msg: 'Error submitting rating',
+      error: error.message 
+    });
   }
 };
 
@@ -325,6 +315,47 @@ const approveReviewComment = async (req, res) => {
   }
 };
 
+const submitReview = async (req, res) => {
+  try {
+    const { productID, customerID, reviewContent, reviewStars } = req.body;
+
+    // For ratings, immediately approve and update product rating
+    if (reviewStars && !reviewContent) {
+      await pool.query(
+        'INSERT INTO Review (productID, customerID, reviewStars, approvalStatus) VALUES (?, ?, ?, 1)',
+        [productID, customerID, reviewStars]
+      );
+
+      // Update product's overall rating
+      const [ratings] = await pool.query(
+        'SELECT AVG(reviewStars) as avgRating FROM Review WHERE productID = ? AND reviewStars IS NOT NULL',
+        [productID]
+      );
+
+      await pool.query(
+        'UPDATE Product SET overallRating = ? WHERE productID = ?',
+        [ratings[0].avgRating || 0, productID]
+      );
+
+      return res.status(200).json({ msg: 'Rating submitted successfully' });
+    }
+
+    // For text reviews, set to pending
+    if (reviewContent) {
+      await pool.query(
+        'INSERT INTO Review (productID, customerID, reviewContent, approvalStatus) VALUES (?, ?, ?, 0)',
+        [productID, customerID, reviewContent]
+      );
+
+      return res.status(200).json({ msg: 'Review submitted and pending approval' });
+    }
+
+  } catch (error) {
+    console.error('Error submitting review:', error);
+    return res.status(500).json({ msg: 'Error submitting review' });
+  }
+};
+
 export {
   getAllReviews,
   getApprovedReviews,
@@ -335,5 +366,6 @@ export {
   getPendingReviews,
   getOverallRatingById,
   getAllPendingReviews,
-  approveReviewComment
+  approveReviewComment,
+  submitReview
 };
