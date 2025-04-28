@@ -11,7 +11,9 @@ import {
   updateOrderItems,
   getOrderDataWrapper,
   deleteOrderItem,
-  getAllOrder
+  getAllOrder,
+  getUserActiveOrders,
+  getUserPastOrders
 } from '../controllers/orderController.js';
 
 import { authenticateToken, authenticateRole } from '../middleware/auth-handler.js';
@@ -19,9 +21,11 @@ import { authenticateToken, authenticateRole } from '../middleware/auth-handler.
 const router = Router();
 
 // General Routes
+router.get('/active', authenticateToken, getUserActiveOrders); // This should come first
+router.get('/past', authenticateToken, getUserPastOrders);
+router.get('/user/me/orders', authenticateToken, getUserOrders); // This should come first
 router.get('/', authenticateToken, getAllOrder);
 router.get('/:id', authenticateToken, getOrder);
-router.get('/user/me/orders', authenticateToken, getUserOrders);
 router.post('/daterange', authenticateToken, getOrdersByDateRange);
 router.get('/:orderid/product/:productid/purchase-price', authenticateToken, getPurchasePrice);
 

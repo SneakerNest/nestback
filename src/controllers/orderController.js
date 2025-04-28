@@ -36,12 +36,235 @@ const getUserOrders = async (req, res) => {
     const username = req.username;
     const [users] = await pool.query('SELECT customerID FROM Customer WHERE username = ?', [username]);
     if (users.length === 0) return res.status(404).json({ msg: 'User not found' });
+    
     const customerID = users[0].customerID;
-    const [orders] = await pool.query('SELECT * FROM `Order` WHERE customerID = ?', [customerID]);
-    res.status(200).json(orders);
+
+    // Modified query to properly get all order details
+    const [orders] = await pool.query(`
+      SELECT 
+        o.orderID,
+        o.orderNumber,
+        o.timeOrdered,
+        o.deliveryStatus,
+        o.totalPrice,
+        o.deliveryID,
+        o.estimatedArrival,
+        p.productID,
+        p.name as productName,
+        oi.quantity,
+        oi.purchasePrice,
+        p.size
+      FROM \`Order\` o
+      LEFT JOIN OrderOrderItemsProduct oi ON o.orderID = oi.orderID
+      LEFT JOIN Product p ON oi.productID = p.productID
+      WHERE o.customerID = ?
+      ORDER BY o.timeOrdered DESC`, 
+      [customerID]
+    );
+
+    // Add debug logging
+    console.log('Raw orders from database:', orders);
+
+    // Group the results by order
+    const formattedOrders = orders.reduce((acc, curr) => {
+      const existingOrder = acc.find(order => order.orderID === curr.orderID);
+      
+      if (existingOrder) {
+        if (curr.productID) {
+          existingOrder.products.push({
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            purchasePrice: curr.purchasePrice,
+            size: curr.size
+          });
+        }
+      } else {
+        acc.push({
+          orderID: curr.orderID,
+          orderNumber: curr.orderNumber,
+          timeOrdered: curr.timeOrdered,
+          deliveryStatus: curr.deliveryStatus,
+          totalPrice: curr.totalPrice,
+          deliveryID: curr.deliveryID,
+          estimatedArrival: curr.estimatedArrival,
+          products: curr.productID ? [{
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            purchasePrice: curr.purchasePrice,
+            size: curr.size
+          }] : []
+        });
+      }
+      return acc;
+    }, []);
+
+    // Add debug logging
+    console.log('Formatted orders:', formattedOrders);
+
+    res.status(200).json(formattedOrders);
   } catch (err) {
     console.log(err);
     res.status(500).json({ msg: 'Error retrieving orders' });
+  }
+};
+
+const getUserActiveOrders = async (req, res) => {
+  try {
+    const username = req.username;
+    const [users] = await pool.query('SELECT customerID FROM Customer WHERE username = ?', [username]);
+    if (users.length === 0) return res.status(404).json({ msg: 'User not found' });
+    
+    const customerID = users[0].customerID;
+
+    // Modified query to remove p.size
+    const [orders] = await pool.query(`
+      SELECT 
+        o.orderID,
+        o.orderNumber,
+        o.timeOrdered,
+        o.deliveryStatus,
+        o.totalPrice,
+        o.deliveryID,
+        o.estimatedArrival,
+        oi.productID,
+        p.name as productName,
+        oi.quantity,
+        oi.purchasePrice
+      FROM \`Order\` o
+      LEFT JOIN OrderOrderItemsProduct oi ON o.orderID = oi.orderID
+      LEFT JOIN Product p ON oi.productID = p.productID
+      WHERE o.customerID = ? AND o.deliveryStatus IN ('Processing', 'In-transit')
+      ORDER BY o.timeOrdered DESC`, 
+      [customerID]
+    );
+
+    // Group products by order (removed size from products array)
+    const formattedOrders = orders.reduce((acc, curr) => {
+      const existingOrder = acc.find(order => order.orderID === curr.orderID);
+      
+      if (existingOrder) {
+        if (curr.productID) {
+          existingOrder.products.push({
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            purchasePrice: curr.purchasePrice
+          });
+        }
+      } else {
+        acc.push({
+          orderID: curr.orderID,
+          orderNumber: curr.orderNumber,
+          timeOrdered: curr.timeOrdered,
+          deliveryStatus: curr.deliveryStatus,
+          totalPrice: curr.totalPrice,
+          deliveryID: curr.deliveryID,
+          estimatedArrival: curr.estimatedArrival,
+          products: curr.productID ? [{
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            purchasePrice: curr.purchasePrice
+          }] : []
+        });
+      }
+      return acc;
+    }, []);
+
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error retrieving active orders' });
+  }
+};
+
+const getUserPastOrders = async (req, res) => {
+  try {
+    const username = req.username;
+    const [users] = await pool.query('SELECT customerID FROM Customer WHERE username = ?', [username]);
+    if (users.length === 0) return res.status(404).json({ msg: 'User not found' });
+    
+    const customerID = users[0].customerID;
+
+    // Modified query to get delivered orders with review status
+    const [orders] = await pool.query(`
+      SELECT 
+        o.orderID,
+        o.orderNumber,
+        o.timeOrdered,
+        o.deliveryStatus,
+        o.totalPrice,
+        o.deliveryID,
+        o.estimatedArrival,
+        oi.productID,
+        p.name as productName,
+        oi.quantity,
+        oi.purchasePrice,
+        EXISTS(
+          SELECT 1 FROM Review r 
+          WHERE r.productID = p.productID 
+          AND r.customerID = ? 
+          AND r.reviewContent IS NOT NULL
+        ) as reviewed,
+        EXISTS(
+          SELECT 1 FROM Review r 
+          WHERE r.productID = p.productID 
+          AND r.customerID = ? 
+          AND r.reviewStars IS NOT NULL
+        ) as rated
+      FROM \`Order\` o
+      LEFT JOIN OrderOrderItemsProduct oi ON o.orderID = oi.orderID
+      LEFT JOIN Product p ON oi.productID = p.productID
+      WHERE o.customerID = ? 
+      AND o.deliveryStatus = 'Delivered'
+      ORDER BY o.timeOrdered DESC`, 
+      [customerID, customerID, customerID]
+    );
+
+    // Group products by order
+    const formattedOrders = orders.reduce((acc, curr) => {
+      const existingOrder = acc.find(order => order.orderID === curr.orderID);
+      
+      if (existingOrder) {
+        if (curr.productID) {
+          existingOrder.products.push({
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            purchasePrice: curr.purchasePrice,
+            rated: curr.rated === 1,
+            reviewed: curr.reviewed === 1
+          });
+        }
+      } else {
+        acc.push({
+          orderID: curr.orderID,
+          orderNumber: curr.orderNumber,
+          timeOrdered: curr.timeOrdered,
+          deliveryStatus: curr.deliveryStatus,
+          totalPrice: curr.totalPrice,
+          deliveryID: curr.deliveryID,
+          estimatedArrival: curr.estimatedArrival,
+          products: curr.productID ? [{
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            purchasePrice: curr.purchasePrice,
+            rated: curr.rated === 1,
+            reviewed: curr.reviewed === 1
+          }] : []
+        });
+      }
+      return acc;
+    }, []);
+
+    console.log('Past orders:', formattedOrders); // Debug log
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error retrieving past orders' });
   }
 };
 
@@ -261,6 +484,8 @@ export {
   getOrder,
   getOrdersByDateRange,
   getUserOrders,
+  getUserActiveOrders,
+  getUserPastOrders,
   getSupplierOrders,
   getPurchasePrice,
   createOrder,

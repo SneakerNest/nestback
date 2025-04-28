@@ -315,44 +315,59 @@ const approveReviewComment = async (req, res) => {
   }
 };
 
+const submitRating = async (req, res) => {
+  try {
+    const { productID, customerID, rating } = req.body;
+
+    // Validate rating
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ msg: 'Rating must be between 1 and 5' });
+    }
+
+    // Insert or update rating
+    await pool.query(
+      'INSERT INTO Review (productID, customerID, reviewStars, approvalStatus) VALUES (?, ?, ?, 1) ' +
+      'ON DUPLICATE KEY UPDATE reviewStars = VALUES(reviewStars), approvalStatus = 1',
+      [productID, customerID, rating]
+    );
+
+    // Update product's overall rating
+    const [reviews] = await pool.query(
+      'SELECT AVG(reviewStars) as avgRating FROM Review WHERE productID = ? AND reviewStars IS NOT NULL',
+      [productID]
+    );
+
+    await pool.query(
+      'UPDATE Product SET overallRating = ? WHERE productID = ?',
+      [reviews[0].avgRating || 0, productID]
+    );
+
+    res.status(200).json({ msg: 'Rating submitted successfully' });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error submitting rating' });
+  }
+};
+
 const submitReview = async (req, res) => {
   try {
-    const { productID, customerID, reviewContent, reviewStars } = req.body;
+    const { productID, customerID, reviewContent } = req.body;
 
-    // For ratings, immediately approve and update product rating
-    if (reviewStars && !reviewContent) {
-      await pool.query(
-        'INSERT INTO Review (productID, customerID, reviewStars, approvalStatus) VALUES (?, ?, ?, 1)',
-        [productID, customerID, reviewStars]
-      );
-
-      // Update product's overall rating
-      const [ratings] = await pool.query(
-        'SELECT AVG(reviewStars) as avgRating FROM Review WHERE productID = ? AND reviewStars IS NOT NULL',
-        [productID]
-      );
-
-      await pool.query(
-        'UPDATE Product SET overallRating = ? WHERE productID = ?',
-        [ratings[0].avgRating || 0, productID]
-      );
-
-      return res.status(200).json({ msg: 'Rating submitted successfully' });
+    if (!reviewContent?.trim()) {
+      return res.status(400).json({ msg: 'Review content is required' });
     }
 
-    // For text reviews, set to pending
-    if (reviewContent) {
-      await pool.query(
-        'INSERT INTO Review (productID, customerID, reviewContent, approvalStatus) VALUES (?, ?, ?, 0)',
-        [productID, customerID, reviewContent]
-      );
+    // Insert review with pending status
+    await pool.query(
+      'INSERT INTO Review (productID, customerID, reviewContent, approvalStatus) VALUES (?, ?, ?, 0) ' +
+      'ON DUPLICATE KEY UPDATE reviewContent = VALUES(reviewContent), approvalStatus = 0',
+      [productID, customerID, reviewContent.trim()]
+    );
 
-      return res.status(200).json({ msg: 'Review submitted and pending approval' });
-    }
-
-  } catch (error) {
-    console.error('Error submitting review:', error);
-    return res.status(500).json({ msg: 'Error submitting review' });
+    res.status(200).json({ msg: 'Review submitted and pending approval' });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error submitting review' });
   }
 };
 
@@ -367,5 +382,6 @@ export {
   getOverallRatingById,
   getAllPendingReviews,
   approveReviewComment,
+  submitRating,
   submitReview
 };

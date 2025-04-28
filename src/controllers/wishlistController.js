@@ -1,13 +1,22 @@
 import { pool } from '../config/database.js';  // MySQL database connection
 
+// Helper function to get customerID from username
+const getCustomerIDFromUsername = async (username) => {
+  const [rows] = await pool.query(
+    'SELECT customerID FROM Customer WHERE username = ?',
+    [username]
+  );
+  return rows[0]?.customerID;
+};
+
 // Add product to wishlist (only for logged-in users)
 const addProductToWishlist = async (req, res) => {
   try {
     const { productID } = req.params;
-    const customerID = req.body.customerID; // This should be passed by the client when logged in
+    const customerID = await getCustomerIDFromUsername(req.username);
 
     if (!customerID) {
-      return res.status(400).json({ error: 'You must be logged in to add products to your wishlist.' });
+      return res.status(400).json({ error: 'Customer not found.' });
     }
 
     if (!productID) {
@@ -68,40 +77,52 @@ const addProductToWishlist = async (req, res) => {
 // View wishlist (only for logged-in users)
 const viewWishlist = async (req, res) => {
   try {
-    const customerID = req.body.customerID; // This should be passed by the client when logged in
+    const customerID = await getCustomerIDFromUsername(req.username);
 
     if (!customerID) {
-      return res.status(400).json({ error: 'Customer ID is required.' });
+      return res.status(400).json({ error: 'Customer not found.' });
     }
 
-    // Fetch the wishlist for the logged-in user
+    // Check if user has a wishlist
     const [wishlistRows] = await pool.query(
       'SELECT * FROM Wishlist WHERE customerID = ?',
       [customerID]
     );
 
+    let wishlistID;
     if (wishlistRows.length === 0) {
-      return res.status(404).json({ error: 'Wishlist not found.' });
+      const [result] = await pool.query(
+        'INSERT INTO Wishlist (customerID) VALUES (?)',
+        [customerID]
+      );
+      wishlistID = result.insertId;
+    } else {
+      wishlistID = wishlistRows[0].wishlistID;
     }
 
-    const wishlistID = wishlistRows[0].wishlistID;
-
-    // Fetch products in the wishlist with discounted prices
-    const [wishlistProducts] = await pool.query(
-      'SELECT p.productID, p.name, p.unitPrice, p.discountPercentage, ' +
-      'ROUND(p.unitPrice * (1 - p.discountPercentage / 100), 2) AS discountedPrice, wi.addedTime ' +
-      'FROM WishlistItems wi ' +
-      'JOIN Product p ON wi.productID = p.productID ' +
-      'WHERE wi.wishlistID = ?',
+    // Fetch products in the wishlist
+    const [products] = await pool.query(
+      `SELECT p.*, 
+        (SELECT picturePath FROM Pictures WHERE productID = p.productID LIMIT 1) as picturePath,
+        wi.addedTime
+       FROM WishlistItems wi
+       JOIN Product p ON wi.productID = p.productID
+       WHERE wi.wishlistID = ?`,
       [wishlistID]
     );
 
+    // Format the products with discounted prices
+    const formattedProducts = products.map(product => ({
+      ...product,
+      discountedPrice: product.unitPrice * (1 - (product.discountPercentage || 0) / 100)
+    }));
+
     res.status(200).json({
       wishlistID,
-      products: wishlistProducts
+      products: formattedProducts
     });
   } catch (err) {
-    console.error(err);
+    console.error('Wishlist error:', err);
     res.status(500).json({ error: 'Failed to fetch wishlist.' });
   }
 };
@@ -110,10 +131,10 @@ const viewWishlist = async (req, res) => {
 const removeProductFromWishlist = async (req, res) => {
   try {
     const { productID } = req.params;
-    const customerID = req.body.customerID; // This should be passed by the client when logged in
+    const customerID = await getCustomerIDFromUsername(req.username);
 
     if (!customerID) {
-      return res.status(400).json({ error: 'Customer ID is required.' });
+      return res.status(400).json({ error: 'Customer not found.' });
     }
 
     if (!productID) {
@@ -156,97 +177,97 @@ const removeProductFromWishlist = async (req, res) => {
 };
 
 const moveToCart = async (req, res) => {
-    try {
-      const { productID } = req.params;
-      const customerID = req.body.customerID;
-  
-      if (!customerID) {
-        return res.status(400).json({ error: 'Customer ID is required.' });
-      }
-  
-      if (!productID) {
-        return res.status(400).json({ error: 'Product ID is required.' });
-      }
+  try {
+    const { productID } = req.params;
+    const customerID = await getCustomerIDFromUsername(req.username);
 
-      // Check product stock and get product details
-      const [productDetails] = await pool.query(
-        'SELECT stock, unitPrice, discountPercentage FROM Product WHERE productID = ?',
-        [productID]
-      );
-
-      if (!productDetails.length || productDetails[0].stock === 0) {
-        return res.status(400).json({ 
-          error: 'Unable to move product to cart. Product is out of stock.'
-        });
-      }
-  
-      // 1. Check if the user has a wishlist
-      const [wishlistRows] = await pool.query(
-        'SELECT * FROM Wishlist WHERE customerID = ?',
-        [customerID]
-      );
-  
-      if (wishlistRows.length === 0) {
-        return res.status(404).json({ error: 'Wishlist not found.' });
-      }
-  
-      const wishlistID = wishlistRows[0].wishlistID;
-  
-      // 2. Check if the product is in the wishlist
-      const [productRows] = await pool.query(
-        'SELECT * FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
-        [wishlistID, productID]
-      );
-  
-      if (productRows.length === 0) {
-        return res.status(404).json({ error: 'Product not found in wishlist.' });
-      }
-  
-      // 3. Check if the user already has a cart
-      const [cartRows] = await pool.query(
-        'SELECT * FROM Cart WHERE customerID = ? AND temporary = false',
-        [customerID]
-      );
-  
-      let cartID;
-      if (cartRows.length === 0) {
-        // If not, create a new permanent cart
-        const [newCart] = await pool.query(
-          'INSERT INTO Cart (totalPrice, numProducts, customerID, temporary) VALUES (?, ?, ?, ?)',
-          [0, 0, customerID, false]
-        );
-        cartID = newCart.insertId;
-      } else {
-        cartID = cartRows[0].cartID;
-      }
-  
-      // 4. Insert the product into CartContainsProduct
-      await pool.query(
-        'INSERT INTO CartContainsProduct (cartID, productID, quantity) VALUES (?, ?, 1)',
-        [cartID, productID]
-      );
-
-      // 5. Update cart totals
-      const discountedPrice = productDetails[0].unitPrice * (1 - productDetails[0].discountPercentage / 100);
-      await pool.query(
-        'UPDATE Cart SET numProducts = numProducts + 1, totalPrice = totalPrice + ? WHERE cartID = ?',
-        [discountedPrice, cartID]
-      );
-  
-      // 6. Remove product from wishlist
-      await pool.query(
-        'DELETE FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
-        [wishlistID, productID]
-      );
-  
-      res.status(200).json({ 
-        message: 'Product moved to cart successfully.',
-        cartID: cartID
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to move product to cart.' });
+    if (!customerID) {
+      return res.status(400).json({ error: 'Customer not found.' });
     }
+
+    if (!productID) {
+      return res.status(400).json({ error: 'Product ID is required.' });
+    }
+
+    // Check product stock and get product details
+    const [productDetails] = await pool.query(
+      'SELECT stock, unitPrice, discountPercentage FROM Product WHERE productID = ?',
+      [productID]
+    );
+
+    if (!productDetails.length || productDetails[0].stock === 0) {
+      return res.status(400).json({ 
+        error: 'Unable to move product to cart. Product is out of stock.'
+      });
+    }
+
+    // 1. Check if the user has a wishlist
+    const [wishlistRows] = await pool.query(
+      'SELECT * FROM Wishlist WHERE customerID = ?',
+      [customerID]
+    );
+
+    if (wishlistRows.length === 0) {
+      return res.status(404).json({ error: 'Wishlist not found.' });
+    }
+
+    const wishlistID = wishlistRows[0].wishlistID;
+
+    // 2. Check if the product is in the wishlist
+    const [productRows] = await pool.query(
+      'SELECT * FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
+      [wishlistID, productID]
+    );
+
+    if (productRows.length === 0) {
+      return res.status(404).json({ error: 'Product not found in wishlist.' });
+    }
+
+    // 3. Check if the user already has a cart
+    const [cartRows] = await pool.query(
+      'SELECT * FROM Cart WHERE customerID = ? AND temporary = false',
+      [customerID]
+    );
+
+    let cartID;
+    if (cartRows.length === 0) {
+      // If not, create a new permanent cart
+      const [newCart] = await pool.query(
+        'INSERT INTO Cart (totalPrice, numProducts, customerID, temporary) VALUES (?, ?, ?, ?)',
+        [0, 0, customerID, false]
+      );
+      cartID = newCart.insertId;
+    } else {
+      cartID = cartRows[0].cartID;
+    }
+
+    // 4. Insert the product into CartContainsProduct
+    await pool.query(
+      'INSERT INTO CartContainsProduct (cartID, productID, quantity) VALUES (?, ?, 1)',
+      [cartID, productID]
+    );
+
+    // 5. Update cart totals
+    const discountedPrice = productDetails[0].unitPrice * (1 - productDetails[0].discountPercentage / 100);
+    await pool.query(
+      'UPDATE Cart SET numProducts = numProducts + 1, totalPrice = totalPrice + ? WHERE cartID = ?',
+      [discountedPrice, cartID]
+    );
+
+    // 6. Remove product from wishlist
+    await pool.query(
+      'DELETE FROM WishlistItems WHERE wishlistID = ? AND productID = ?',
+      [wishlistID, productID]
+    );
+
+    res.status(200).json({ 
+      message: 'Product moved to cart successfully.',
+      cartID: cartID
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to move product to cart.' });
+  }
 };
 
 export { addProductToWishlist, viewWishlist, removeProductFromWishlist, moveToCart };

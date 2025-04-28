@@ -13,6 +13,7 @@ import paymentRouter from './routes/PaymentAPI.js';
 import deliveryRouter from './routes/DeliveryAPI.js';
 import invoiceRouter from './routes/InvoiceAPI.js';
 import imagesRouter from './routes/ImagesAPI.js';
+import reviewsRouter from './routes/ReviewsAPI.js';
 import cors from 'cors'; 
 import cookieParser from 'cookie-parser';
 
@@ -41,6 +42,7 @@ app.use('/api/v1/payment', paymentRouter);
 app.use('/api/v1/delivery', deliveryRouter);
 app.use('/api/v1/invoice', invoiceRouter);
 app.use('/api/v1/images', imagesRouter);
+app.use('/api/v1/reviews', reviewsRouter);
 
 // Health check
 app.get('/', (req, res) => {
