@@ -253,27 +253,50 @@ const getPendingReviews = async (req, res) => {
 
 const getAllPendingReviews = async (req, res) => {
   try {
+    console.log('Getting pending reviews...');
+    
     const sql = `
-        SELECT 
-            r.reviewID,
-            r.reviewContent,
-            r.reviewStars,
-            r.customerID,
-            r.productID,
-            r.productManagerUsername,
-            r.approvalStatus,
-            p.name as productName 
-        FROM Review r 
-        JOIN Product p ON r.productID = p.productID 
-        WHERE r.approvalStatus = 0`;
-        
+      SELECT 
+        r.reviewID,
+        r.reviewContent,
+        r.reviewStars,
+        r.customerID,
+        r.productID,
+        r.approvalStatus,
+        p.name as productName,
+        u.name as reviewerName,
+        u.username as reviewerUsername
+      FROM Review r 
+      JOIN Product p ON r.productID = p.productID 
+      JOIN Customer c ON r.customerID = c.customerID
+      JOIN USERS u ON c.username = u.username
+      WHERE r.approvalStatus = 0 
+      AND r.reviewContent IS NOT NULL  /* Only get reviews with text content */
+      ORDER BY r.reviewID DESC`;
+    
     const [results] = await pool.query(sql);
     
-    if (results.length === 0) {
-      return res.status(200).json({ msg: "No pending reviews found", reviews: [] });
-    }
+    console.log('Query results:', results);
     
-    res.status(200).json(results);
+    if (results.length === 0) {
+      console.log('No pending reviews found');
+      return res.status(200).json([]);
+    }
+
+    const formattedResults = results.map(review => ({
+      reviewID: review.reviewID,
+      productID: review.productID,
+      productName: review.productName,
+      reviewContent: review.reviewContent,
+      reviewStars: review.reviewStars,
+      reviewerName: review.reviewerName,
+      reviewerUsername: review.reviewerUsername,
+      customerID: review.customerID,
+      approvalStatus: review.approvalStatus
+    }));
+
+    console.log('Formatted results:', formattedResults);
+    res.status(200).json(formattedResults);
   } catch (err) {
     console.error("Error in getAllPendingReviews:", err);
     res.status(500).json({ msg: "Error retrieving pending reviews" });
@@ -286,7 +309,7 @@ const approveReviewComment = async (req, res) => {
 
     // Check if review exists and has content
     const [review] = await pool.query(
-      'SELECT reviewID, reviewContent FROM Review WHERE reviewID = ?',
+      'SELECT r.*, p.name as productName FROM Review r JOIN Product p ON r.productID = p.productID WHERE r.reviewID = ?',
       [reviewId]
     );
 
@@ -305,13 +328,13 @@ const approveReviewComment = async (req, res) => {
     );
 
     res.status(200).json({ 
-      msg: "Review comment approved successfully",
-      reviewId: reviewId
+      msg: "Review approved successfully",
+      review: review[0]
     });
 
   } catch (err) {
     console.error("Error approving review:", err);
-    res.status(500).json({ msg: "Error approving review comment" });
+    res.status(500).json({ msg: "Error approving review" });
   }
 };
 
@@ -324,27 +347,25 @@ const submitRating = async (req, res) => {
       return res.status(400).json({ msg: 'Rating must be between 1 and 5' });
     }
 
-    // Insert or update rating
+    // Always insert ratings as approved (approvalStatus = 1)
     await pool.query(
-      'INSERT INTO Review (productID, customerID, reviewStars, approvalStatus) VALUES (?, ?, ?, 1) ' +
-      'ON DUPLICATE KEY UPDATE reviewStars = VALUES(reviewStars), approvalStatus = 1',
+      `INSERT INTO Review (productID, customerID, reviewStars, approvalStatus) 
+       VALUES (?, ?, ?, 1) 
+       ON DUPLICATE KEY UPDATE 
+       reviewStars = VALUES(reviewStars), 
+       approvalStatus = CASE 
+         WHEN reviewContent IS NULL THEN 1  /* If only rating, approve automatically */
+         ELSE approvalStatus               /* Keep existing approval status if there's a review */
+       END`,
       [productID, customerID, rating]
     );
 
-    // Update product's overall rating
-    const [reviews] = await pool.query(
-      'SELECT AVG(reviewStars) as avgRating FROM Review WHERE productID = ? AND reviewStars IS NOT NULL',
-      [productID]
-    );
+    // Update product's overall rating immediately
+    await updateProductRating(productID);
 
-    await pool.query(
-      'UPDATE Product SET overallRating = ? WHERE productID = ?',
-      [reviews[0].avgRating || 0, productID]
-    );
-
-    res.status(200).json({ msg: 'Rating submitted successfully' });
+    res.status(200).json({ msg: 'Rating submitted and approved' });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ msg: 'Error submitting rating' });
   }
 };

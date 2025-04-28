@@ -16,34 +16,19 @@ import { authenticateToken, authenticateRole } from '../middleware/auth-handler.
 
 const router = Router();
 
-// Public Routes - No Authentication Required
-router.get('/product/:id', getAllReviews);
-router.get('/product/:id/approved', getApprovedReviews);
-router.get('/:reviewId', getReviewById);
+// Product Manager Routes - Put these first to avoid route conflicts
+router.get('/pending', authenticateToken, authenticateRole(['productManager']), getAllPendingReviews);
+router.put('/:reviewId/approve', authenticateToken, authenticateRole(['productManager']), approveReviewComment);
+router.delete('/:reviewId', authenticateToken, deleteReview);
 
-// Protected Routes - Customer Authentication Required
+// Customer Routes
 router.post('/rating', authenticateToken, submitRating);
 router.post('/review', authenticateToken, submitReview);
 router.put('/:reviewId', authenticateToken, updateReview);
-router.delete('/:reviewId', authenticateToken, deleteReview);
 
-// Product Manager Routes
-router.get('/pending', 
-  authenticateToken, 
-  authenticateRole(['productManager']), 
-  getAllPendingReviews
-);
-
-router.get('/pending/:productManagerUsername', 
-  authenticateToken, 
-  authenticateRole(['productManager']), 
-  getPendingReviews
-);
-
-router.put('/:reviewId/approve', 
-  authenticateToken, 
-  authenticateRole(['productManager']), 
-  approveReviewComment
-);
+// Public Routes
+router.get('/product/:id', getAllReviews);
+router.get('/product/:id/approved', getApprovedReviews);
+router.get('/:reviewId', getReviewById);
 
 export default router;

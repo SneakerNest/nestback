@@ -7,7 +7,9 @@ import {
     getFootwearCategories,
     getSubcategoryProducts, 
     getParentCategoryProducts,
-    getProductById
+    getProductById,
+    getProductCategory,
+    updateProductStock // Add this import
 } from '../controllers/productController.js';
 
 // Import review controller
@@ -61,6 +63,16 @@ router.get('/categories/:parentId/all-products', (req, res) => {
 router.get('/products/:productId', (req, res) => {
     return getProductById(req, res);
 });
+
+// Add this route
+router.get('/product/:productId/category', getProductCategory);
+
+// Add this route with the other product routes
+router.put('/products/:productId/stock', 
+  authenticateToken, 
+  authenticateRole(['productManager']), 
+  updateProductStock
+);
 
 // ===== REVIEW ROUTES =====
 

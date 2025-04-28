@@ -426,3 +426,59 @@ export const getProductById = async (req, res) => {
         });
     }
 };
+
+// Get product category
+export const getProductCategory = async (req, res) => {
+    try {
+        const [result] = await pool.query(`
+            SELECT c.name as categoryName 
+            FROM Category c
+            JOIN CategoryCategorizesProduct ccp ON c.categoryID = ccp.categoryID
+            WHERE ccp.productID = ?
+        `, [req.params.productId]);
+
+        if (result.length === 0) {
+            return res.status(404).json({ msg: 'Category not found for this product' });
+        }
+
+        res.json({ categoryName: result[0].categoryName });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: 'Error retrieving product category' });
+    }
+};
+
+// Update product stock
+export const updateProductStock = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const { stock } = req.body;
+
+        // Validate stock value
+        if (typeof stock !== 'number' || stock < 0) {
+            return res.status(400).json({
+                message: 'Invalid stock value. Must be a number greater than or equal to 0'
+            });
+        }
+
+        const query = `
+            UPDATE Product 
+            SET stock = ?
+            WHERE productID = ?
+        `;
+
+        await pool.query(query, [stock, productId]);
+
+        res.status(200).json({
+            message: 'Stock updated successfully',
+            productId,
+            newStock: stock
+        });
+    } catch (error) {
+        console.error('Error updating product stock:', error);
+        res.status(500).json({ 
+            message: 'Error updating product stock', 
+            error: error.message 
+        });
+    }
+};

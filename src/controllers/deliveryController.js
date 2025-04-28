@@ -74,14 +74,30 @@ const getOrderById = async (req, res) => {
 
 const updateDeliveryStatus = async (req, res) => {
   try {
+    const { id } = req.params;
+    const { deliveryStatus } = req.body;
+
+    // Validate delivery status
+    const validStatuses = ['Processing', 'In-transit', 'Delivered'];
+    if (!validStatuses.includes(deliveryStatus)) {
+      return res.status(400).json({
+        msg: "Invalid delivery status. Must be 'Processing', 'In-transit', or 'Delivered'"
+      });
+    }
+
     let sql = 'UPDATE `Order` SET deliveryStatus = ? WHERE orderID = ?';
-    const [results, fields] = await pool.query(sql, [req.body.deliveryStatus, req.params.id]);
-    res.status(200).json({msg: "Delivery Status updated"});
+    await pool.query(sql, [deliveryStatus, id]);
+
+    res.status(200).json({
+      msg: "Delivery Status updated",
+      orderId: id,
+      newStatus: deliveryStatus
+    });
   } catch(err) {
-    console.log(err);
+    console.error("Error updating Delivery Status:", err);
     res.status(500).json({msg: "Error updating Delivery Status"});
   }
-}
+};
 
 const getDeliveryStatus = async (req, res) => {
     try {
