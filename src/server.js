@@ -14,6 +14,8 @@ import deliveryRouter from './routes/DeliveryAPI.js';
 import invoiceRouter from './routes/InvoiceAPI.js';
 import imagesRouter from './routes/ImagesAPI.js';
 import reviewsRouter from './routes/ReviewsAPI.js';
+import productManagerRouter from './routes/ProductManagerAPI.js';
+import salesManagerRouter from './routes/SalesManagerAPI.js';
 import cors from 'cors'; 
 import cookieParser from 'cookie-parser';
 
@@ -22,20 +24,20 @@ console.log('NODE_DOCKER_PORT:', process.env.NODE_DOCKER_PORT);
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Your frontend URL
-  credentials: true, // CRITICAL for cookies to work properly
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
+  origin: ['http://localhost:3000', 'http://localhost:5001'], // Allow both frontend and API URLs
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With']
 }));
 
-app.use(express.json()); 
-app.use(cookieParser()); 
+app.use(express.json());
+app.use(cookieParser());
 
 // Routes
-app.use('/api/v1/user', userRouter); 
+app.use('/api/v1/users', userRouter);
 app.use('/api/v1/cart', cartRouter);
-app.use('/api/v1/wishlist', wishlistRouter); 
 app.use('/api/v1/store', storeRouter);
+app.use('/api/v1/wishlist', wishlistRouter);
 app.use('/api/v1/address', addressRouter);
 app.use('/api/v1/order', orderRouter);
 app.use('/api/v1/payment', paymentRouter);
@@ -43,6 +45,8 @@ app.use('/api/v1/delivery', deliveryRouter);
 app.use('/api/v1/invoice', invoiceRouter);
 app.use('/api/v1/images', imagesRouter);
 app.use('/api/v1/reviews', reviewsRouter);
+app.use('/api/v1/product-manager', productManagerRouter);
+app.use('/api/v1/sales-manager', salesManagerRouter);
 
 // Health check
 app.get('/', (req, res) => {
@@ -50,7 +54,6 @@ app.get('/', (req, res) => {
 });
 
 // Server startup
-// Only start the server if this file is run directly (not imported)
 if (process.env.NODE_ENV !== 'test') {
   connectToDatabase()
   .then(() => {
@@ -63,6 +66,5 @@ if (process.env.NODE_ENV !== 'test') {
     process.exit(1);
   });
 }
-
 
 export default app;

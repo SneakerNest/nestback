@@ -44,6 +44,7 @@ create table if not exists `Product` (
 	`warrantyMonths` int(3) not null default 0,
 	`serialNumber` varchar(64),
 	`popularity` int(3) not null default 0,
+	`status` enum('pending', 'approved', 'rejected') not null default 'pending',
 	primary key (`productID`),
 	foreign key (`supplierID`) references `Supplier` (`supplierID`) on delete restrict
 );

@@ -2,7 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import PDFDocument from 'pdfkit';
 import { PassThrough } from 'stream';
-import { transporter } from './mailTransporter.js';
+// import { transporter } from './mailTransporter.js';
 import { getOrderDataWrapper } from '../controllers/orderController.js';
 import { getAddressWrapper } from '../controllers/addressController.js';
 
@@ -138,7 +138,7 @@ const mailSender = async (req, res) => {
             };
 
             try {
-                await transporter.sendMail(mailOptions);
+                // await transporter.sendMail(mailOptions);
                 res.status(200).json({ message: 'Invoice sent successfully.' });
             } catch (emailError) {
                 console.error('Email error:', emailError);
