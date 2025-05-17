@@ -4,7 +4,12 @@ dotenv.config();
 
 // Middleware to authenticate token
 const authenticateToken = (req, res, next) => {
-  const token = req.cookies.authToken; // Retrieve token from cookies
+  // Check both cookie and Authorization header
+  const tokenFromCookie = req.cookies.authToken;
+  const tokenFromHeader = req.headers.authorization?.split(' ')[1];
+  const token = tokenFromCookie || tokenFromHeader;
+
+  console.log('Auth check - Cookie token:', !!tokenFromCookie, 'Header token:', !!tokenFromHeader);
 
   if (!token) {
     return res.status(401).json({ message: 'Access denied. No token provided.' });
@@ -18,6 +23,10 @@ const authenticateToken = (req, res, next) => {
     // Attach the decoded token payload to req
     req.username = user.id;
     req.role = user.role;
+    req.user = {
+      username: user.id,
+      role: user.role
+    };
 
     next();
   });

@@ -9,7 +9,11 @@ import {
     getParentCategoryProducts,
     getProductById,
     getProductCategory,
-    updateProductStock // Add this import
+    updateProductStock,
+    createPendingProduct,
+    getPendingProducts,
+    approveProduct,
+    deleteProduct
 } from '../controllers/productController.js';
 
 // Import review controller
@@ -23,7 +27,7 @@ import {
     getPendingReviews,
     getOverallRatingById,
     getAllPendingReviews,
-    approveReviewComment // Add this import
+    approveReviewComment
 } from '../controllers/reviewsController.js';
 
 // Import authentication middleware
@@ -31,6 +35,19 @@ import { authenticateToken, authenticateRole } from '../middleware/auth-handler.
 
 // Import database pool
 import { pool } from '../config/database.js';
+
+// Import category controller - only category-specific functions
+import {
+    createCategory,
+    deleteCategory
+} from '../controllers/categoryController.js';
+
+// Update the category route to handle file uploads
+import multer from 'multer';
+
+// Set up multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 const router = Router();
 
@@ -73,6 +90,27 @@ router.put('/products/:productId/stock',
   authenticateRole(['productManager']), 
   updateProductStock
 );
+
+// ===== CATEGORY MANAGEMENT ROUTES =====
+
+// Category management with image upload
+router.post('/categories', 
+  authenticateToken, 
+  authenticateRole(['productManager']), 
+  upload.single('image'), // Add this middleware to handle image upload
+  createCategory
+);
+
+router.delete('/categories/:id', authenticateToken, authenticateRole(['productManager']), deleteCategory);
+
+// ===== PENDING PRODUCTS ROUTES =====
+
+// Pending products
+router.post('/products/pending', authenticateToken, authenticateRole(['productManager']), createPendingProduct);
+router.get('/products/pending', authenticateToken, authenticateRole(['productManager', 'salesManager']), getPendingProducts);
+
+// For sales managers to set prices
+router.put('/products/pending/:id/approve', authenticateToken, authenticateRole(['salesManager']), approveProduct);
 
 // ===== REVIEW ROUTES =====
 
@@ -183,6 +221,3 @@ router.get('/users/:username', async (req, res) => {
 });
 
 export default router;
-
-
-// hi gurl

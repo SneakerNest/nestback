@@ -177,10 +177,15 @@ const getUserProfile = async (req, res) => {
     }
 
     const role = await checkRole(username);
-    
-    // Get customer data with reviewed products info
+
+    // Get customer data with joined address info
     const [customerResults] = await pool.query(
-      'SELECT * FROM Customer WHERE username = ?',
+      `SELECT 
+         c.*, 
+         a.addressTitle, a.country, a.city, a.province, a.zipCode, a.streetAddress
+       FROM Customer c
+       LEFT JOIN Address a ON c.addressID = a.addressID
+       WHERE c.username = ?`,
       [username]
     );
 
@@ -190,7 +195,7 @@ const getUserProfile = async (req, res) => {
 
     const customer = customerResults[0];
 
-    // Updated query to properly check reviews for each product-order combination
+    // Fetch past delivered orders with review/rating flags
     const [orderResults] = await pool.query(
       `SELECT 
         o.*, 
@@ -220,11 +225,10 @@ const getUserProfile = async (req, res) => {
       [customer.customerID, customer.customerID, customer.customerID]
     );
 
-    // Group products by order with review status
     const orders = orderResults.reduce((acc, curr) => {
       const order = acc.find(o => o.orderID === curr.orderID);
       if (order) {
-        if (curr.productID) { // Only add if there's a product
+        if (curr.productID) {
           order.products.push({
             productID: curr.productID,
             name: curr.productName,
@@ -271,7 +275,6 @@ const getUserProfile = async (req, res) => {
     return res.status(500).json({ msg: 'Error fetching profile data' });
   }
 };
-
 const updateUserProfile = async (req, res) => {
   try {
     const { name, password, phone } = req.body;

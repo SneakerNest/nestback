@@ -1,20 +1,69 @@
 import { pool } from '../config/database.js';
 
+// Update the getOrder function to be more robust in fetching address
 const getOrder = async (req, res) => {
   try {
     const orderID = req.params.id;
     const [orders] = await pool.query('SELECT * FROM `Order` WHERE orderID = ?', [orderID]);
     if (orders.length === 0) return res.status(404).json({ msg: 'Order not found' });
 
+    const order = orders[0];
+    console.log(`Fetching details for order ${orderID}, delivery address ID: ${order.deliveryAddressID}`);
+
+    // Explicitly join the order with address information
+    const [orderWithAddress] = await pool.query(
+      `SELECT o.*, 
+        a.addressID, a.addressTitle, a.streetAddress, a.city, 
+        a.province, a.zipCode, a.country
+       FROM \`Order\` o
+       LEFT JOIN Address a ON o.deliveryAddressID = a.addressID
+       WHERE o.orderID = ?`,
+      [orderID]
+    );
+    
+    if (orderWithAddress.length > 0) {
+      // Format the full address information
+      order.deliveryAddress = {
+        addressID: orderWithAddress[0].addressID,
+        addressTitle: orderWithAddress[0].addressTitle,
+        streetAddress: orderWithAddress[0].streetAddress,
+        city: orderWithAddress[0].city,
+        province: orderWithAddress[0].province,
+        zipCode: orderWithAddress[0].zipCode,
+        country: orderWithAddress[0].country
+      };
+      
+      console.log('Address information found:', order.deliveryAddress);
+    } else {
+      console.log('No address information found for order');
+      
+      // Fallback: If no address in order, try to get customer's default address
+      const [customerAddress] = await pool.query(
+        `SELECT a.*
+         FROM Customer c
+         JOIN Address a ON c.addressID = a.addressID
+         WHERE c.customerID = ?`,
+        [order.customerID]
+      );
+      
+      if (customerAddress.length > 0) {
+        order.deliveryAddress = customerAddress[0];
+        console.log('Using customer default address as fallback');
+      }
+    }
+
+    // Get order items with product names
     const [items] = await pool.query('SELECT * FROM OrderOrderItemsProduct WHERE orderID = ?', [orderID]);
     for (let item of items) {
-      const [product] = await pool.query('SELECT name FROM Product WHERE productID = ?', [item.productID]);
+      const [product] = await pool.query('SELECT name, size FROM Product WHERE productID = ?', [item.productID]);
       item.productName = product[0].name;
+      item.size = product[0].size;
     }
-    orders[0].orderItems = items;
-    res.status(200).json(orders[0]);
+    
+    order.orderItems = items;
+    res.status(200).json(order);
   } catch (err) {
-    console.log(err);
+    console.log('Error retrieving order:', err);
     res.status(500).json({ msg: 'Error retrieving order' });
   }
 };
@@ -110,6 +159,7 @@ const getUserOrders = async (req, res) => {
   }
 };
 
+// Update the getUserActiveOrders function to include delivery address
 const getUserActiveOrders = async (req, res) => {
   try {
     const username = req.username;
@@ -118,7 +168,7 @@ const getUserActiveOrders = async (req, res) => {
     
     const customerID = users[0].customerID;
 
-    // Modified query to remove p.size
+    // Modified query to include address information
     const [orders] = await pool.query(`
       SELECT 
         o.orderID,
@@ -131,16 +181,23 @@ const getUserActiveOrders = async (req, res) => {
         oi.productID,
         p.name as productName,
         oi.quantity,
-        oi.purchasePrice
+        oi.purchasePrice,
+        a.addressTitle,
+        a.streetAddress,
+        a.city,
+        a.province,
+        a.zipCode,
+        a.country
       FROM \`Order\` o
       LEFT JOIN OrderOrderItemsProduct oi ON o.orderID = oi.orderID
       LEFT JOIN Product p ON oi.productID = p.productID
+      LEFT JOIN Address a ON o.deliveryAddressID = a.addressID
       WHERE o.customerID = ? AND o.deliveryStatus IN ('Processing', 'In-transit')
       ORDER BY o.timeOrdered DESC`, 
       [customerID]
     );
 
-    // Group products by order (removed size from products array)
+    // Group products by order and include delivery address
     const formattedOrders = orders.reduce((acc, curr) => {
       const existingOrder = acc.find(order => order.orderID === curr.orderID);
       
@@ -162,6 +219,14 @@ const getUserActiveOrders = async (req, res) => {
           totalPrice: curr.totalPrice,
           deliveryID: curr.deliveryID,
           estimatedArrival: curr.estimatedArrival,
+          deliveryAddress: {
+            addressTitle: curr.addressTitle,
+            streetAddress: curr.streetAddress,
+            city: curr.city,
+            province: curr.province,
+            zipCode: curr.zipCode,
+            country: curr.country
+          },
           products: curr.productID ? [{
             productID: curr.productID,
             name: curr.productName,
@@ -268,6 +333,77 @@ const getUserPastOrders = async (req, res) => {
   }
 };
 
+const getUserCancelledOrders = async (req, res) => {
+  try {
+    const username = req.username;
+    const [users] = await pool.query('SELECT customerID FROM Customer WHERE username = ?', [username]);
+    if (users.length === 0) return res.status(404).json({ msg: 'User not found' });
+    
+    const customerID = users[0].customerID;
+
+    // Get only cancelled orders
+    const [orders] = await pool.query(`
+      SELECT 
+        o.orderID,
+        o.orderNumber,
+        o.timeOrdered,
+        o.deliveryStatus,
+        o.totalPrice,
+        o.deliveryID,
+        o.estimatedArrival,
+        oi.productID,
+        p.name as productName,
+        oi.quantity,
+        oi.purchasePrice
+      FROM \`Order\` o
+      LEFT JOIN OrderOrderItemsProduct oi ON o.orderID = oi.orderID
+      LEFT JOIN Product p ON oi.productID = p.productID
+      WHERE o.customerID = ? 
+      AND o.deliveryStatus = 'cancelled'
+      ORDER BY o.timeOrdered DESC`, 
+      [customerID]
+    );
+
+    // Group products by order
+    const formattedOrders = orders.reduce((acc, curr) => {
+      const existingOrder = acc.find(order => order.orderID === curr.orderID);
+      
+      if (existingOrder) {
+        if (curr.productID) {
+          existingOrder.products.push({
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            purchasePrice: curr.purchasePrice
+          });
+        }
+      } else {
+        acc.push({
+          orderID: curr.orderID,
+          orderNumber: curr.orderNumber,
+          timeOrdered: curr.timeOrdered,
+          deliveryStatus: curr.deliveryStatus,
+          totalPrice: curr.totalPrice,
+          deliveryID: curr.deliveryID,
+          estimatedArrival: curr.estimatedArrival,
+          products: curr.productID ? [{
+            productID: curr.productID,
+            name: curr.productName,
+            quantity: curr.quantity,
+            purchasePrice: curr.purchasePrice
+          }] : []
+        });
+      }
+      return acc;
+    }, []);
+
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Error retrieving cancelled orders' });
+  }
+};
+
 const getSupplierOrders = async (req, res) => {
   try {
     const username = req.username;
@@ -317,12 +453,27 @@ const getPurchasePrice = async (req, res) => {
   }
 };
 
+// Update the createOrder function to ensure address is properly linked
 const createOrder = async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
     const username = req.username;
-    const [[customer]] = await conn.query('SELECT customerID, addressID FROM Customer WHERE username = ?', [username]);
+    
+    // Get customer data with address information
+    const [[customer]] = await conn.query(
+      'SELECT c.customerID, c.addressID, a.* FROM Customer c ' +
+      'JOIN Address a ON c.addressID = a.addressID ' +
+      'WHERE c.username = ?', 
+      [username]
+    );
+    
+    console.log('Creating order with customer address data:', {
+      customerID: customer.customerID,
+      addressID: customer.addressID,
+      addressTitle: customer.addressTitle
+    });
+
     const [[cart]] = await conn.query('SELECT * FROM Cart WHERE customerID = ? AND temporary = false', [customer.customerID]);
     const [cartItems] = await conn.query('SELECT * FROM CartContainsProduct WHERE cartID = ?', [cart.cartID]);
 
@@ -338,11 +489,15 @@ const createOrder = async (req, res) => {
     const deliveryID = Math.floor(Math.random() * 1000000000);
     const estimatedArrival = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
+    // When inserting the order, explicitly use customer.addressID
     const [orderResult] = await conn.query(
       'INSERT INTO `Order` (orderNumber, totalPrice, deliveryID, deliveryStatus, deliveryAddressID, estimatedArrival, customerID, cartID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [orderNumber, cart.totalPrice, deliveryID, 'Processing', customer.addressID, estimatedArrival, customer.customerID, cart.cartID]
     );
-
+    
+    // Print debug info
+    console.log(`Order created with ID ${orderResult.insertId}, using address ID ${customer.addressID}`);
+    
     let orderTotal = 0;
     for (let item of cartItems) {
       const [[product]] = await conn.query('SELECT unitPrice, discountPercentage FROM Product WHERE productID = ?', [item.productID]);
@@ -419,24 +574,68 @@ const deleteOrderItem = async (req, res) => {
 
 const cancelOrder = async (req, res) => {
   try {
-    const orderID = req.params.id;
-    const [[order]] = await pool.query('SELECT deliveryStatus FROM `Order` WHERE orderID = ?', [orderID]);
-
-    if (!order || ['Delivering', 'Delivered'].includes(order.deliveryStatus)) {
-      return res.status(400).json({ msg: 'Cannot cancel delivered or delivering order' });
+    const { id } = req.params;
+    const username = req.username;
+    
+    // Check if order exists and belongs to this user
+    const [orderRows] = await pool.query(
+      `SELECT o.* FROM \`Order\` o
+       JOIN Customer c ON o.customerID = c.customerID
+       WHERE o.orderID = ? AND c.username = ?`,
+      [id, username]
+    );
+    
+    if (orderRows.length === 0) {
+      return res.status(404).json({ message: 'Order not found or does not belong to you' });
     }
-
-    await pool.query('UPDATE `Order` SET deliveryStatus = ? WHERE orderID = ?', ['Cancelled', orderID]);
-
-    const [items] = await pool.query('SELECT productID, quantity FROM OrderOrderItemsProduct WHERE orderID = ?', [orderID]);
-    for (let item of items) {
-      await pool.query('UPDATE Product SET stock = stock + ? WHERE productID = ?', [item.quantity, item.productID]);
+    
+    const order = orderRows[0];
+    
+    // Check if order is in processing status
+    if (order.deliveryStatus.toLowerCase() !== 'processing') {
+      return res.status(400).json({ 
+        message: 'Only orders in "processing" status can be cancelled' 
+      });
     }
-
-    res.status(200).json({ msg: 'Order cancelled and stock updated' });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ msg: 'Error cancelling order' });
+    
+    // Update order status to cancelled
+    await pool.query(
+      'UPDATE `Order` SET deliveryStatus = ? WHERE orderID = ?',
+      ['cancelled', id]
+    );
+    
+    // Update inventory to return products to stock
+    const [orderItems] = await pool.query(
+      'SELECT productID, quantity FROM OrderOrderItemsProduct WHERE orderID = ?',
+      [id]
+    );
+    
+    // Begin transaction for inventory updates
+    await pool.query('START TRANSACTION');
+    
+    try {
+      // Return each product to inventory
+      for (const item of orderItems) {
+        await pool.query(
+          'UPDATE Product SET stock = stock + ? WHERE productID = ?',
+          [item.quantity, item.productID]
+        );
+      }
+      
+      await pool.query('COMMIT');
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      throw error;
+    }
+    
+    return res.status(200).json({ 
+      message: 'Order cancelled successfully',
+      orderID: id
+    });
+    
+  } catch (error) {
+    console.error('Error cancelling order:', error);
+    return res.status(500).json({ message: 'Failed to cancel order', error: error.message });
   }
 };
 
@@ -486,6 +685,7 @@ export {
   getUserOrders,
   getUserActiveOrders,
   getUserPastOrders,
+  getUserCancelledOrders,
   getSupplierOrders,
   getPurchasePrice,
   createOrder,

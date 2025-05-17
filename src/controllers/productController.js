@@ -482,3 +482,137 @@ export const updateProductStock = async (req, res) => {
         });
     }
 };
+
+export const createPendingProduct = async (req, res) => {
+  try {
+    const { name, categoryID, subcategory, description, stock } = req.body;
+    const image = req.file;
+    
+    // Validate required fields
+    if (!name || !categoryID || !stock) {
+      return res.status(400).json({ message: 'Name, category, and stock are required' });
+    }
+    
+    let conn;
+    try {
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
+      
+      // Insert product with pending status and no price yet
+      const [productResult] = await conn.query(
+        `INSERT INTO Product 
+        (name, categoryID, subcategory, description, stock, status) 
+        VALUES (?, ?, ?, ?, ?, 'pending')`,
+        [name, categoryID, subcategory || null, description || null, stock]
+      );
+      
+      const productId = productResult.insertId;
+      
+      // Handle image upload if provided
+      if (image) {
+        const fileName = `${Date.now()}_${image.originalname}`;
+        const filePath = `/uploads/products/${fileName}`;
+        
+        // Save file and record in database
+        await saveFile(image.buffer, filePath);
+        await conn.query(
+          'INSERT INTO ProductPicture (productID, pictureURL) VALUES (?, ?)',
+          [productId, fileName]
+        );
+      }
+      
+      await conn.commit();
+      
+      return res.status(201).json({
+        productID: productId,
+        message: 'Product created and pending price approval'
+      });
+      
+    } catch (error) {
+      if (conn) await conn.rollback();
+      throw error;
+    } finally {
+      if (conn) conn.release();
+    }
+    
+  } catch (error) {
+    console.error('Error creating pending product:', error);
+    return res.status(500).json({ message: 'Error creating product', error: error.message });
+  }
+};
+
+export const getPendingProducts = async (req, res) => {
+  try {
+    const [products] = await pool.query(
+      `SELECT p.*, c.name as categoryName
+       FROM Product p
+       JOIN Category c ON p.categoryID = c.categoryID
+       WHERE p.status = 'pending'
+       ORDER BY p.productID DESC`
+    );
+    
+    // Get pictures for each product
+    for (let product of products) {
+      const [pictures] = await pool.query(
+        'SELECT pictureURL FROM ProductPicture WHERE productID = ?', 
+        [product.productID]
+      );
+      product.pictures = pictures.map(pic => pic.pictureURL);
+      product.imageUrl = pictures.length > 0 
+        ? `http://localhost:5001/api/v1/images/${pictures[0].pictureURL}`
+        : '/placeholder.jpg';
+    }
+    
+    return res.status(200).json(products);
+  } catch (error) {
+    console.error('Error fetching pending products:', error);
+    return res.status(500).json({ message: 'Error fetching pending products', error: error.message });
+  }
+};
+
+export const approveProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { price, discountPercentage = 0 } = req.body;
+    
+    if (!price) {
+      return res.status(400).json({ message: 'Price is required' });
+    }
+    
+    await pool.query(
+      `UPDATE Product 
+       SET unitPrice = ?, discountPercentage = ?, status = 'active' 
+       WHERE productID = ?`,
+      [price, discountPercentage, id]
+    );
+    
+    return res.status(200).json({ message: 'Product approved and price set' });
+  } catch (error) {
+    console.error('Error approving product:', error);
+    return res.status(500).json({ message: 'Error approving product', error: error.message });
+  }
+};
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if product exists
+    const [productCheck] = await pool.query('SELECT * FROM Product WHERE productID = ?', [id]);
+    
+    if (productCheck.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    // Delete product pictures first
+    await pool.query('DELETE FROM ProductPicture WHERE productID = ?', [id]);
+    
+    // Delete product
+    await pool.query('DELETE FROM Product WHERE productID = ?', [id]);
+    
+    return res.status(200).json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    return res.status(500).json({ message: 'Error deleting product', error: error.message });
+  }
+};
