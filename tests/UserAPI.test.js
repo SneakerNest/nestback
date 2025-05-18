@@ -2,6 +2,11 @@ import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 
+// Mock mail transporter
+jest.mock('../src/Services/mailTransporter.js', () => ({
+  transporter: { verify: jest.fn(), sendMail: jest.fn() }
+}));
+
 // Mock the server.js module
 jest.mock('../src/server.js', () => {
   const app = express();
