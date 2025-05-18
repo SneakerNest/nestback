@@ -82,7 +82,7 @@ export const getProductsForCategory = async (req, res) => {
             INNER JOIN CategoryCategorizesProduct ccp ON p.productID = ccp.productID
             INNER JOIN Category c ON ccp.categoryID = c.categoryID
             LEFT JOIN Pictures pic ON p.productID = pic.productID
-            WHERE c.categoryID = ? AND p.showProduct = true AND p.unitPrice > 0
+            WHERE c.categoryID = ? AND p.showProduct = 1 AND p.unitPrice > 0
             GROUP BY p.productID
             ORDER BY p.name
         `;
@@ -646,13 +646,79 @@ export const approveProduct = async (req, res) => {
       return res.status(400).json({ message: 'Price is required' });
     }
     
+    // First check if the product exists
+    const [productCheck] = await pool.query(
+      'SELECT * FROM Product WHERE productID = ?', 
+      [id]
+    );
+    
+    if (productCheck.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    // Update product and make it visible
     await pool.query(
       `UPDATE Product 
-       SET unitPrice = ?, discountPercentage = ?, status = 'active', showProduct = true 
+       SET unitPrice = ?, discountPercentage = ?, showProduct = 1 
        WHERE productID = ?`,
       [price, discountPercentage, id]
     );
     
+    // Also check if the product has a category assignment
+    const [categoryCheck] = await pool.query(
+      'SELECT * FROM CategoryCategorizesProduct WHERE productID = ?',
+      [id]
+    );
+    
+    // If no category is assigned, assign it to Football category
+    if (categoryCheck.length === 0) {
+      // Find Football category ID
+      const [footballCategory] = await pool.query(
+        'SELECT categoryID FROM Category WHERE name = ? OR name = ?',
+        ['Football', 'football'] // Check both capitalizations
+      );
+      
+      let targetCategoryID;
+      
+      if (footballCategory && footballCategory.length > 0) {
+        targetCategoryID = footballCategory[0].categoryID;
+      } else {
+        // Football category not found, create it
+        const [newCategory] = await pool.query(
+          'INSERT INTO Category (name, description) VALUES (?, ?)',
+          ['Football', 'Football products']
+        );
+        targetCategoryID = newCategory.insertId;
+      }
+      
+      // Assign product to Football category
+      await pool.query(
+        'INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES (?, ?)',
+        [targetCategoryID, id]
+      );
+      
+      console.log(`Assigned product ${id} to Football category (ID: ${targetCategoryID})`);
+    } else {
+      // If a category is already assigned, update it to Football
+      const [footballCategory] = await pool.query(
+        'SELECT categoryID FROM Category WHERE name = ? OR name = ?',
+        ['Football', 'football']
+      );
+      
+      if (footballCategory && footballCategory.length > 0) {
+        const footballCategoryID = footballCategory[0].categoryID;
+        
+        // Update the existing category to Football
+        await pool.query(
+          'UPDATE CategoryCategorizesProduct SET categoryID = ? WHERE productID = ?',
+          [footballCategoryID, id]
+        );
+        
+        console.log(`Updated product ${id} category to Football (ID: ${footballCategoryID})`);
+      }
+    }
+    
+    console.log(`Product ${id} successfully approved and set to visible`);
     return res.status(200).json({ message: 'Product approved and price set' });
   } catch (error) {
     console.error('Error approving product:', error);
