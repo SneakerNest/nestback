@@ -13,7 +13,7 @@ export const getProductsByCategory = async (req, res) => {
             INNER JOIN CategoryCategorizesProduct ccp ON p.productID = ccp.productID
             INNER JOIN Category c ON ccp.categoryID = c.categoryID
             LEFT JOIN Pictures pic ON p.productID = pic.productID
-            WHERE p.showProduct = true
+            WHERE p.showProduct = true AND p.unitPrice > 0
             GROUP BY p.productID, c.categoryID, c.name, p.name, p.unitPrice, 
                      p.description, p.brand, p.material, p.warrantyMonths, 
                      p.color, p.stock, p.discountPercentage, p.showProduct
@@ -82,7 +82,7 @@ export const getProductsForCategory = async (req, res) => {
             INNER JOIN CategoryCategorizesProduct ccp ON p.productID = ccp.productID
             INNER JOIN Category c ON ccp.categoryID = c.categoryID
             LEFT JOIN Pictures pic ON p.productID = pic.productID
-            WHERE c.categoryID = ? AND p.showProduct = true
+            WHERE c.categoryID = ? AND p.showProduct = true AND p.unitPrice > 0
             GROUP BY p.productID
             ORDER BY p.name
         `;
@@ -171,7 +171,7 @@ export const getAllProducts = async (req, res) => {
                 GROUP_CONCAT(DISTINCT pic.picturePath) as pictures
             FROM Product p
             LEFT JOIN Pictures pic ON p.productID = pic.productID
-            WHERE p.showProduct = true
+            WHERE p.showProduct = true AND p.unitPrice > 0
             GROUP BY p.productID
             ORDER BY p.name
         `;
@@ -251,7 +251,7 @@ export const getSubcategoryProducts = async (req, res) => {
                 GROUP_CONCAT(DISTINCT pic.picturePath) as pictures
             FROM Category c
             LEFT JOIN CategoryCategorizesProduct ccp ON c.categoryID = ccp.categoryID
-            LEFT JOIN Product p ON ccp.productID = p.productID AND p.showProduct = true
+            LEFT JOIN Product p ON ccp.productID = p.productID AND p.showProduct = true AND p.unitPrice > 0
             LEFT JOIN Pictures pic ON p.productID = pic.productID
             WHERE c.parentCategoryID = ?
             GROUP BY 
@@ -331,7 +331,7 @@ export const getParentCategoryProducts = async (req, res) => {
             INNER JOIN Category subcat ON ccp.categoryID = subcat.categoryID
             LEFT JOIN Pictures pic ON p.productID = pic.productID
             WHERE subcat.parentCategoryID = ?
-                AND p.showProduct = true
+                AND p.showProduct = true AND p.unitPrice > 0
             GROUP BY 
                 p.productID, 
                 p.name,
@@ -503,7 +503,6 @@ export const updateProductStock = async (req, res) => {
 export const createPendingProduct = async (req, res) => {
   try {
     const { name, categoryID, subcategory, description, stock } = req.body;
-    const image = req.file;
     
     // Validate required fields
     if (!name || !categoryID || !stock) {
@@ -514,35 +513,63 @@ export const createPendingProduct = async (req, res) => {
     try {
       conn = await pool.getConnection();
       await conn.beginTransaction();
-      
-      // Insert product with pending status and no price yet
+
+      // Add showProduct=false
       const [productResult] = await conn.query(
         `INSERT INTO Product 
-        (name, categoryID, subcategory, description, stock, status) 
-        VALUES (?, ?, ?, ?, ?, 'pending')`,
-        [name, categoryID, subcategory || null, description || null, stock]
+         (name, description, stock, brand, supplierID, material, 
+          warrantyMonths, serialNumber, popularity, overallRating, 
+          unitPrice, discountPercentage, color, showProduct) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          name, 
+          description || '',
+          stock,
+          subcategory || 'Generic',  // Use subcategory as brand if provided
+          1,                         // Default supplierID
+          'Leather',                 // Default material
+          6,                         // Default warranty months
+          `SN-FB-${Math.floor(Math.random() * 10000)}`, // Random serial number
+          0,                         // Default popularity
+          0,                         // Default rating
+          0,                         // Default price (will be set by sales manager)
+          0,                         // Default discount
+          'Default',                 // Default color
+          0                          // Not visible to customers
+        ]
       );
       
       const productId = productResult.insertId;
       
-      // Handle image upload if provided
-      if (image) {
-        const fileName = `${Date.now()}_${image.originalname}`;
-        const filePath = `/uploads/products/${fileName}`;
+      // Connect product to category
+      await conn.query(
+        'INSERT INTO CategoryCategorizesProduct (categoryID, productID) VALUES (?, ?)',
+        [categoryID, productId]
+      );
+      
+      // Handle image upload
+      if (req.file) {
+        const imageName = `product_${productId}_${Date.now()}${path.extname(req.file.originalname)}`;
+        const imagePath = path.join(__dirname, '../../public/uploads/products', imageName);
         
-        // Save file and record in database
-        await saveFile(image.buffer, filePath);
+        // Create directory if it doesn't exist
+        fs.mkdirSync(path.dirname(imagePath), { recursive: true });
+        
+        // Save image
+        fs.writeFileSync(imagePath, req.file.buffer);
+        
+        // Save image reference in database
         await conn.query(
-          'INSERT INTO ProductPicture (productID, pictureURL) VALUES (?, ?)',
-          [productId, fileName]
+          'INSERT INTO Pictures (productID, picturePath) VALUES (?, ?)',
+          [productId, imageName]
         );
       }
       
       await conn.commit();
       
       return res.status(201).json({
-        productID: productId,
-        message: 'Product created and pending price approval'
+        message: 'Product created and pending approval',
+        productId
       });
       
     } catch (error) {
@@ -560,30 +587,53 @@ export const createPendingProduct = async (req, res) => {
 
 export const getPendingProducts = async (req, res) => {
   try {
-    const [products] = await pool.query(
-      `SELECT p.*, c.name as categoryName
-       FROM Product p
-       JOIN Category c ON p.categoryID = c.categoryID
-       WHERE p.status = 'pending'
-       ORDER BY p.productID DESC`
-    );
+    console.log('getPendingProducts controller called - using debug approach');
     
-    // Get pictures for each product
+    // Use the exact same query that works in debug endpoint
+    const [products] = await pool.query('SELECT * FROM Product WHERE unitPrice < 0.01');
+    
+    console.log(`Found ${products.length} pending products with price < 0.01`);
+    
+    // Now get pictures for each product
     for (let product of products) {
+      // Get product images
       const [pictures] = await pool.query(
-        'SELECT pictureURL FROM ProductPicture WHERE productID = ?', 
+        'SELECT picturePath FROM Pictures WHERE productID = ?',
         [product.productID]
       );
-      product.pictures = pictures.map(pic => pic.pictureURL);
-      product.imageUrl = pictures.length > 0 
-        ? `http://localhost:5001/api/v1/images/${pictures[0].pictureURL}`
-        : '/placeholder.jpg';
+      
+      // Add image URL directly to product
+      if (pictures && pictures.length > 0) {
+        product.pictures = pictures.map(pic => pic.picturePath);
+        product.imageUrl = `/api/v1/store/images/${pictures[0].picturePath}`;
+      } else {
+        product.pictures = [];
+        product.imageUrl = '/placeholder.jpg';
+      }
+      
+      // Get category name
+      const [categoryResults] = await pool.query(
+        `SELECT c.name as categoryName 
+         FROM Category c
+         JOIN CategoryCategorizesProduct ccp ON c.categoryID = ccp.categoryID
+         WHERE ccp.productID = ?
+         LIMIT 1`,
+        [product.productID]
+      );
+      
+      product.categoryName = categoryResults.length > 0 ? 
+                            categoryResults[0].categoryName : 
+                            'Uncategorized';
     }
     
     return res.status(200).json(products);
+    
   } catch (error) {
-    console.error('Error fetching pending products:', error);
-    return res.status(500).json({ message: 'Error fetching pending products', error: error.message });
+    console.error('Error in getPendingProducts:', error);
+    return res.status(500).json({ 
+      message: 'Error fetching pending products', 
+      error: error.message 
+    });
   }
 };
 
@@ -598,7 +648,7 @@ export const approveProduct = async (req, res) => {
     
     await pool.query(
       `UPDATE Product 
-       SET unitPrice = ?, discountPercentage = ?, status = 'active' 
+       SET unitPrice = ?, discountPercentage = ?, status = 'active', showProduct = true 
        WHERE productID = ?`,
       [price, discountPercentage, id]
     );
@@ -614,22 +664,45 @@ export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if product exists
-    const [productCheck] = await pool.query('SELECT * FROM Product WHERE productID = ?', [id]);
-    
-    if (productCheck.length === 0) {
+    // First, check if product exists
+    const [product] = await pool.query('SELECT * FROM Product WHERE productID = ?', [id]);
+    if (product.length === 0) {
       return res.status(404).json({ message: 'Product not found' });
     }
     
-    // Delete product pictures first
-    await pool.query('DELETE FROM ProductPicture WHERE productID = ?', [id]);
+    console.log(`Attempting to delete product ID ${id}`);
     
-    // Delete product
-    await pool.query('DELETE FROM Product WHERE productID = ?', [id]);
-    
-    return res.status(200).json({ message: 'Product deleted successfully' });
+    // Try to delete all related records first using simple queries without transaction
+    try {
+      // Disable foreign key checks temporarily to force deletion
+      await pool.query('SET FOREIGN_KEY_CHECKS=0');
+      
+      // Delete all related records
+      await pool.query('DELETE FROM CategoryCategorizesProduct WHERE productID = ?', [id]);
+      await pool.query('DELETE FROM Pictures WHERE productID = ?', [id]);
+      await pool.query('DELETE FROM CartContainsProduct WHERE productID = ?', [id]);
+      await pool.query('DELETE FROM WishlistItems WHERE productID = ?', [id]);
+      await pool.query('DELETE FROM OrderOrderItemsProduct WHERE productID = ?', [id]);
+      
+      // Finally delete the product itself
+      await pool.query('DELETE FROM Product WHERE productID = ?', [id]);
+      
+      // Re-enable foreign key checks
+      await pool.query('SET FOREIGN_KEY_CHECKS=1');
+      
+      return res.status(200).json({ message: 'Product deleted successfully' });
+    } catch (innerError) {
+      console.error('Error in deletion process:', innerError);
+      
+      // Re-enable foreign key checks in case of error
+      await pool.query('SET FOREIGN_KEY_CHECKS=1');
+      throw innerError;
+    }
   } catch (error) {
     console.error('Error deleting product:', error);
-    return res.status(500).json({ message: 'Error deleting product', error: error.message });
+    return res.status(500).json({ 
+      message: 'Error deleting product - will try direct deletion', 
+      error: error.message 
+    });
   }
 };

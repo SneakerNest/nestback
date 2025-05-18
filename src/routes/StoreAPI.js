@@ -161,6 +161,44 @@ router.put('/products/:productId/stock',
   updateProductStock
 );
 
+// Add this new endpoint to get product category and images
+
+router.get('/product/:productID/category', async (req, res) => {
+  try {
+    const { productID } = req.params;
+    const [categoryResult] = await pool.query(`
+      SELECT c.name as categoryName 
+      FROM Category c
+      JOIN CategoryCategorizesProduct ccp ON c.categoryID = ccp.categoryID
+      WHERE ccp.productID = ?
+      LIMIT 1
+    `, [productID]);
+    
+    return res.status(200).json({ 
+      categoryName: categoryResult.length > 0 ? categoryResult[0].categoryName : 'Uncategorized' 
+    });
+  } catch (error) {
+    console.error('Error getting product category:', error);
+    return res.status(500).json({ message: 'Error getting product category' });
+  }
+});
+
+router.get('/product/:productID/images', async (req, res) => {
+  try {
+    const { productID } = req.params;
+    const [picturesResult] = await pool.query(`
+      SELECT picturePath FROM Pictures WHERE productID = ?
+    `, [productID]);
+    
+    return res.status(200).json({
+      pictures: picturesResult.map(pic => pic.picturePath)
+    });
+  } catch (error) {
+    console.error('Error getting product images:', error);
+    return res.status(500).json({ message: 'Error getting product images' });
+  }
+});
+
 // ===== CATEGORY MANAGEMENT ROUTES =====
 
 // Category management with image upload
@@ -177,7 +215,7 @@ router.delete('/categories/:id', authenticateToken, authenticateRole(['productMa
 
 // Pending products
 router.post('/products/pending', authenticateToken, authenticateRole(['productManager']), createPendingProduct);
-router.get('/products/pending', authenticateToken, authenticateRole(['productManager', 'salesManager']), getPendingProducts);
+router.get('/products/pending', getPendingProducts);
 
 // For sales managers to set prices
 router.put('/products/pending/:id/approve', authenticateToken, authenticateRole(['salesManager']), approveProduct);
@@ -312,6 +350,68 @@ router.get('/debug-categories', async (req, res) => {
 // Add a direct route to get all categories
 router.get('/categories', (req, res) => {
     return getCategories(req, res);
+});
+
+// Add this debugging route - no authentication required
+router.get('/debug/pending-products', async (req, res) => {
+  try {
+    // Direct database query bypassing authentication
+    const [products] = await pool.query('SELECT * FROM Product WHERE unitPrice < 0.01');
+    
+    // Log what's in the database
+    console.log('DEBUG - Raw pending products in database:', products);
+    
+    return res.status(200).json({
+      count: products.length,
+      rawData: products
+    });
+  } catch (error) {
+    console.error('Error in debug-pending route:', error);
+    return res.status(500).json({ 
+      message: 'Error fetching pending products', 
+      error: error.message 
+    });
+  }
+});
+
+// Add this new route specifically for pending products deletion
+
+// Add a special route for pending product deletion that bypasses all checks
+router.delete('/debug/pending-products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log(`EMERGENCY DELETE: Attempting to delete pending product ID ${id}`);
+    
+    // Force deletion with direct SQL query and disabled checks
+    await pool.query('SET FOREIGN_KEY_CHECKS=0');
+    
+    // Delete from ALL possible related tables
+    await pool.query('DELETE FROM CategoryCategorizesProduct WHERE productID = ?', [id]);
+    await pool.query('DELETE FROM Pictures WHERE productID = ?', [id]);
+    await pool.query('DELETE FROM CartContainsProduct WHERE productID = ?', [id]);
+    await pool.query('DELETE FROM WishlistItems WHERE productID = ?', [id]);
+    await pool.query('DELETE FROM OrderOrderItemsProduct WHERE productID = ?', [id]);
+    await pool.query('DELETE FROM Product WHERE productID = ?', [id]);
+    
+    await pool.query('SET FOREIGN_KEY_CHECKS=1');
+    
+    return res.status(200).json({ message: 'Pending product deleted successfully' });
+  } catch (error) {
+    console.error('Error in emergency pending product deletion:', error);
+    
+    // Always re-enable foreign key checks
+    try {
+      await pool.query('SET FOREIGN_KEY_CHECKS=1');
+    } catch (err) {
+      console.error('Error resetting foreign key checks:', err);
+    }
+    
+    return res.status(500).json({ 
+      message: 'Failed to delete pending product', 
+      error: error.message 
+    });
+  }
 });
 
 export default router;

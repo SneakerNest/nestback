@@ -16,7 +16,13 @@ import imagesRouter from './routes/ImagesAPI.js';
 import reviewsRouter from './routes/ReviewsAPI.js';
 import cors from 'cors'; 
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
+// Fix __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const app = express();
 console.log('NODE_DOCKER_PORT:', process.env.NODE_DOCKER_PORT);
 
@@ -43,6 +49,7 @@ app.use('/api/v1/delivery', deliveryRouter);
 app.use('/api/v1/invoice', invoiceRouter);
 app.use('/api/v1/images', imagesRouter);
 app.use('/api/v1/reviews', reviewsRouter);
+app.use('/assets/images', express.static(path.join(process.cwd(), 'src/assets/images')));
 
 // Health check
 app.get('/', (req, res) => {
