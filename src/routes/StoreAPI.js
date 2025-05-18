@@ -45,6 +45,18 @@ import {
 // Update the category route to handle file uploads
 import multer from 'multer';
 
+// Don't forget to add these imports at the top
+import path from 'path';
+import fs from 'fs';
+
+// Add these imports at the top of the file
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 // Set up multer for memory storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -54,6 +66,64 @@ const router = Router();
 // Sample sanity route
 router.get('/', (req, res) => {
     return res.send('Store API, welcome!');
+});
+
+// Update the image serving route to properly check all possible paths
+
+router.get('/images/:imageName', (req, res) => {
+  const { imageName } = req.params;
+  console.log(`Image request for: ${imageName}`);
+  
+  // Define all possible image paths to check - add extra options for Docker paths
+  const pathsToCheck = [
+    // Standard paths in Docker container
+    path.join(__dirname, '../../public/uploads', imageName),
+    path.join(__dirname, '../../public/uploads/categories', imageName),
+    path.join(__dirname, '../../public/uploads/products', imageName),
+    path.join(__dirname, '../../assets/images', imageName),
+    // Root level assets path
+    path.join(__dirname, '../../../assets/images', imageName),
+    // Absolute path in Docker container
+    '/usr/src/app/assets/images/' + imageName,
+    // Try nestback path explicitly
+    '/usr/src/app/nestback/assets/images/' + imageName
+  ];
+  
+  console.log('Checking paths for image:', pathsToCheck);
+  
+  // Try each path in order
+  for (const imagePath of pathsToCheck) {
+    console.log(`Checking path: ${imagePath}`);
+    if (fs.existsSync(imagePath)) {
+      console.log(`Found image at: ${imagePath}`);
+      return res.sendFile(imagePath);
+    }
+  }
+  
+  console.log(`Image not found: ${imageName}`);
+  return res.status(404).json({ message: 'Image not found' });
+});
+
+// Add this debug route
+
+router.get('/debug/image-paths/:imageName', (req, res) => {
+  const { imageName } = req.params;
+  const pathsToCheck = [
+    path.join(__dirname, '../../public/uploads', imageName),
+    path.join(__dirname, '../../public/uploads/categories', imageName),
+    path.join(__dirname, '../../public/uploads/products', imageName),
+    path.join(__dirname, '../../assets/images', imageName)
+  ];
+  
+  const results = pathsToCheck.map(path => ({
+    path,
+    exists: fs.existsSync(path)
+  }));
+  
+  res.status(200).json({
+    imageName,
+    pathsChecked: results
+  });
 });
 
 // Product category routes
@@ -218,6 +288,30 @@ router.get('/users/:username', async (req, res) => {
     console.error('Error fetching user:', error);
     res.status(500).json({ message: 'Error fetching user data' });
   }
+});
+
+// Add this right after your existing routes
+router.get('/debug-categories', async (req, res) => {
+  try {
+    // Direct database query to bypass any logic errors
+    const [categories] = await pool.query('SELECT * FROM Category');
+    
+    // Log what's in the database
+    console.log('DEBUG - Raw categories in database:', categories);
+    
+    return res.status(200).json({
+      count: categories.length,
+      rawData: categories
+    });
+  } catch (error) {
+    console.error('Error in debug-categories route:', error);
+    return res.status(500).json({ message: 'Error fetching categories', error: error.message });
+  }
+});
+
+// Add a direct route to get all categories
+router.get('/categories', (req, res) => {
+    return getCategories(req, res);
 });
 
 export default router;

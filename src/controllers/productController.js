@@ -118,23 +118,40 @@ export const getProductsForCategory = async (req, res) => {
     }
 };
 
-// Get all categories with subcategory count
+// Get all categories
 export const getCategories = async (req, res) => {
     try {
+        console.log('getCategories function called');
+        
+        // Get all categories from database
         const query = `
             SELECT 
-                c1.categoryID,
-                c1.name,
-                c1.description,
-                COUNT(c2.categoryID) as subcategoryCount
-            FROM Category c1
-            LEFT JOIN Category c2 ON c1.categoryID = c2.parentCategoryID
-            WHERE c1.parentCategoryID = 0
-            GROUP BY c1.categoryID, c1.name, c1.description
-            ORDER BY c1.name
+                categoryID,
+                name,
+                description,
+                parentCategoryID
+            FROM Category
+            ORDER BY categoryID
         `;
 
         const [categories] = await pool.query(query);
+        console.log(`Found ${categories.length} categories:`, JSON.stringify(categories));
+        
+        // Simply use the category name for all images - no placeholders
+        for (let category of categories) {
+            // For all categories, the image will be the category name
+            category.image = `${category.name}.jpg`;
+            
+            // Find subcategories for parent categories
+            if (!category.parentCategoryID) {
+                const subcategories = categories.filter(
+                    subcat => subcat.parentCategoryID === category.categoryID
+                ).map(subcat => subcat.name);
+                
+                category.subcategories = subcategories;
+            }
+        }
+        
         res.json(categories);
     } catch (error) {
         console.error('Error fetching categories:', error);

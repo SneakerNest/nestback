@@ -59,8 +59,13 @@ export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check for existing products in this category
-    const [products] = await pool.query('SELECT COUNT(*) as count FROM Product WHERE categoryID = ?', [id]);
+    // Check for existing products in this category using the join table
+    const [products] = await pool.query(
+      `SELECT COUNT(*) as count 
+       FROM CategoryCategorizesProduct 
+       WHERE categoryID = ?`, 
+      [id]
+    );
     
     if (products[0].count > 0) {
       return res.status(400).json({ 
@@ -68,7 +73,25 @@ export const deleteCategory = async (req, res) => {
       });
     }
     
+    // Get image filename before deleting
+    const [category] = await pool.query('SELECT image FROM Category WHERE categoryID = ?', [id]);
+    const imageFileName = category[0]?.image;
+    
+    // Delete category from database
     await pool.query('DELETE FROM Category WHERE categoryID = ?', [id]);
+    
+    // Delete image file if it exists
+    if (imageFileName) {
+      try {
+        const uploadsDir = path.join(__dirname, '../../public/uploads/categories');
+        const filePath = path.join(uploadsDir, imageFileName);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (fileError) {
+        console.warn('Warning: Could not delete category image file:', fileError);
+      }
+    }
     
     return res.status(200).json({ message: 'Category deleted successfully' });
   } catch (error) {
