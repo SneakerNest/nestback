@@ -86,7 +86,9 @@ router.get('/images/:imageName', (req, res) => {
     // Absolute path in Docker container
     '/usr/src/app/assets/images/' + imageName,
     // Try nestback path explicitly
-    '/usr/src/app/nestback/assets/images/' + imageName
+    '/usr/src/app/nestback/assets/images/' + imageName,
+    // Add more paths if needed
+    '/usr/src/app/public/uploads/products/' + imageName
   ];
   
   console.log('Checking paths for image:', pathsToCheck);
@@ -101,7 +103,7 @@ router.get('/images/:imageName', (req, res) => {
   }
   
   console.log(`Image not found: ${imageName}`);
-  return res.status(404).json({ message: 'Image not found' });
+  return res.status(404).sendFile(path.join(__dirname, '../../assets/images/placeholder.jpg'));
 });
 
 // Add this debug route
@@ -198,6 +200,40 @@ router.get('/product/:productID/images', async (req, res) => {
     return res.status(500).json({ message: 'Error getting product images' });
   }
 });
+
+// Add this new route for updating product prices (add near the other product routes)
+
+// Update product price and discount
+router.put('/products/:id/price', 
+  authenticateToken, 
+  authenticateRole(['salesManager']), 
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { unitPrice, discountPercentage = 0 } = req.body;
+      
+      if (!unitPrice || isNaN(unitPrice) || unitPrice <= 0) {
+        return res.status(400).json({ message: 'Valid price is required' });
+      }
+      
+      if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+        return res.status(400).json({ message: 'Discount must be between 0 and 100' });
+      }
+      
+      await pool.query(
+        `UPDATE Product 
+         SET unitPrice = ?, discountPercentage = ?
+         WHERE productID = ?`,
+        [unitPrice, discountPercentage, id]
+      );
+      
+      return res.status(200).json({ message: 'Product price updated successfully' });
+    } catch (error) {
+      console.error('Error updating product price:', error);
+      return res.status(500).json({ message: 'Error updating product price', error: error.message });
+    }
+  }
+);
 
 // ===== CATEGORY MANAGEMENT ROUTES =====
 
@@ -411,6 +447,163 @@ router.delete('/debug/pending-products/:id', async (req, res) => {
       message: 'Failed to delete pending product', 
       error: error.message 
     });
+  }
+});
+
+// Enhance the recently-approved endpoint to provide more data
+
+router.get('/debug/recently-approved', async (req, res) => {
+  try {
+    // Get products approved in the last 24 hours
+    const [products] = await pool.query(`
+      SELECT 
+        p.*,
+        GROUP_CONCAT(DISTINCT pic.picturePath) as pictures
+      FROM Product p
+      LEFT JOIN Pictures pic ON p.productID = pic.productID
+      WHERE p.showProduct = 1 
+      AND p.unitPrice > 0
+      AND p.timeListed >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+      GROUP BY p.productID
+    `);
+    
+    // Format the products with picture arrays
+    const formattedProducts = products.map(product => ({
+      ...product,
+      pictures: product.pictures ? product.pictures.split(',') : []
+    }));
+
+    console.log(`Found ${formattedProducts.length} recently approved products`);
+    
+    return res.status(200).json({
+      count: formattedProducts.length,
+      products: formattedProducts
+    });
+  } catch (error) {
+    console.error('Error in recently-approved route:', error);
+    return res.status(500).json({ 
+      message: 'Error fetching recently approved products', 
+      error: error.message 
+    });
+  }
+});
+
+// Add this new debug endpoint to check product visibility
+
+router.get('/debug/product/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get basic product info
+    const [productInfo] = await pool.query(
+      'SELECT * FROM Product WHERE productID = ?', 
+      [id]
+    );
+    
+    if (productInfo.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    // Get category info
+    const [categoryInfo] = await pool.query(
+      `SELECT c.categoryID, c.name as categoryName
+       FROM Category c
+       JOIN CategoryCategorizesProduct ccp ON c.categoryID = ccp.categoryID
+       WHERE ccp.productID = ?`,
+      [id]
+    );
+    
+    // Get image info
+    const [imageInfo] = await pool.query(
+      'SELECT * FROM Pictures WHERE productID = ?',
+      [id]
+    );
+    
+    return res.status(200).json({
+      product: productInfo[0],
+      category: categoryInfo.length > 0 ? categoryInfo[0] : null,
+      images: imageInfo,
+      visibility: {
+        showProduct: productInfo[0].showProduct === 1 ? 'Visible' : 'Hidden',
+        hasPrice: productInfo[0].unitPrice > 0 ? 'Yes' : 'No',
+        hasCategory: categoryInfo.length > 0 ? 'Yes' : 'No',
+        hasImages: imageInfo.length > 0 ? 'Yes' : 'No',
+      }
+    });
+  } catch (error) {
+    console.error('Error in debug product endpoint:', error);
+    return res.status(500).json({ message: 'Error getting product debug info', error: error.message });
+  }
+});
+
+// Add this debug endpoint near your other debug routes
+
+router.get('/debug/product-category/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    // Get all category assignments for this product
+    const [categories] = await pool.query(`
+      SELECT c.categoryID, c.name, c.parentCategoryID
+      FROM CategoryCategorizesProduct ccp
+      JOIN Category c ON ccp.categoryID = c.categoryID
+      WHERE ccp.productID = ?
+    `, [productId]);
+    
+    // Get product basic info
+    const [product] = await pool.query('SELECT * FROM Product WHERE productID = ?', [productId]);
+    
+    return res.json({
+      productId,
+      productInfo: product[0] || null,
+      categories,
+      message: categories.length > 0 
+        ? `Product is assigned to ${categories.length} categories` 
+        : 'Product is not assigned to any category'
+    });
+  } catch (error) {
+    console.error('Error in debug product-category endpoint:', error);
+    return res.status(500).json({ message: 'Error getting product category info', error: error.message });
+  }
+});
+
+// Add this debug endpoint to help verify category assignments
+
+router.get('/debug/football-products', async (req, res) => {
+  try {
+    // Find Football category ID
+    const [footballCategory] = await pool.query(
+      'SELECT categoryID FROM Category WHERE name = ? OR name = ?',
+      ['Football', 'football']
+    );
+    
+    if (!footballCategory || footballCategory.length === 0) {
+      return res.status(404).json({ message: 'Football category not found' });
+    }
+    
+    const footballCategoryID = footballCategory[0].categoryID;
+    
+    // Get all products in Football category
+    const [products] = await pool.query(`
+      SELECT p.*, GROUP_CONCAT(pic.picturePath) as pictures
+      FROM Product p
+      JOIN CategoryCategorizesProduct ccp ON p.productID = ccp.productID
+      LEFT JOIN Pictures pic ON p.productID = pic.productID
+      WHERE ccp.categoryID = ?
+      GROUP BY p.productID
+    `, [footballCategoryID]);
+    
+    return res.status(200).json({
+      categoryId: footballCategoryID,
+      productsCount: products.length,
+      products: products.map(p => ({
+        ...p,
+        pictures: p.pictures ? p.pictures.split(',') : []
+      }))
+    });
+  } catch (error) {
+    console.error('Error in football-products debug route:', error);
+    return res.status(500).json({ message: 'Error fetching football products', error: error.message });
   }
 });
 
