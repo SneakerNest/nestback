@@ -32,6 +32,11 @@ jest.mock('../src/middleware/auth-handler.js', () => ({
   authenticateRole: () => (req, res, next) => next()
 }));
 
+// Mock mail transporter
+jest.mock('../src/Services/mailTransporter.js', () => ({
+  transporter: { verify: jest.fn(), sendMail: jest.fn() }
+}));
+
 // Import the mocked app
 import app from '../src/server.js';
 
