@@ -1,6 +1,8 @@
+// Load environment variables from .env file
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Import required dependencies
 import express from 'express';
 import userRouter from './routes/UserAPI.js'; 
 import { connectToDatabase } from './config/database.js';
@@ -23,12 +25,14 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 // Fix __dirname in ES modules
+// This is needed because ES modules don't have __dirname by default
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const app = express();
 console.log('NODE_DOCKER_PORT:', process.env.NODE_DOCKER_PORT);
 
 // Middleware
+// Configure CORS to allow requests from the frontend
 app.use(cors({
   origin: 'http://localhost:3000', // Your frontend URL
   credentials: true, // CRITICAL for cookies to work properly
@@ -36,10 +40,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
 }));
 
+// Parse JSON request bodies
 app.use(express.json()); 
+// Parse cookies from request headers
 app.use(cookieParser()); 
 
-// Routes
+// API Routes
+// Each router handles a specific domain of the application
 app.use('/api/v1/user', userRouter); 
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/wishlist', wishlistRouter); 
@@ -53,9 +60,11 @@ app.use('/api/v1/images', imagesRouter);
 app.use('/api/v1/reviews', reviewsRouter);
 app.use('/api/v1/financial', financialRouter);
 app.use('/api/v1/refunds', refundRouter);
+// Static file serving for images
 app.use('/assets/images', express.static(path.join(process.cwd(), 'src/assets/images')));
 
-// Health check
+// Health check endpoint
+// Simple route to verify the server is running
 app.get('/', (req, res) => {
   res.send('Server is running and working fine!');
 });
@@ -75,5 +84,5 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-
+// Export the app for testing purposes
 export default app;
