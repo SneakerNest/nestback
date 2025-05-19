@@ -53,6 +53,9 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
+// Make sure this import exists at the top of the file
+import { sendWishlistDiscountNotifications } from '../controllers/notificationController.js';
+
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -209,30 +212,88 @@ router.put('/products/:id/price',
   authenticateRole(['salesManager']), 
   async (req, res) => {
     try {
-      const { id } = req.params;
-      const { unitPrice, discountPercentage = 0 } = req.body;
+      const productId = req.params.id;
+      const { price, discountPercentage } = req.body;
       
-      if (!unitPrice || isNaN(unitPrice) || unitPrice <= 0) {
-        return res.status(400).json({ message: 'Valid price is required' });
+      console.log('Updating product price:', {
+        productId,
+        price,
+        discountPercentage,
+        username: req.username
+      });
+      
+      // Validate inputs
+      if (isNaN(price) || price <= 0) {
+        return res.status(400).json({ message: 'Price must be a positive number' });
       }
       
       if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
-        return res.status(400).json({ message: 'Discount must be between 0 and 100' });
+        return res.status(400).json({ message: 'Discount percentage must be between 0 and 100' });
       }
       
-      await pool.query(
-        `UPDATE Product 
-         SET unitPrice = ?, discountPercentage = ?
-         WHERE productID = ?`,
-        [unitPrice, discountPercentage, id]
+      // Update price in database directly
+      const [updateResult] = await pool.query(
+        'UPDATE Product SET unitPrice = ?, discountPercentage = ? WHERE productID = ?',
+        [price, discountPercentage, productId]
       );
       
-      return res.status(200).json({ message: 'Product price updated successfully' });
+      if (updateResult.affectedRows === 0) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      
+      // Log the sales manager's price update in the SalesManagerManagesPriceProduct table
+      await pool.query(
+        'INSERT INTO SalesManagerManagesPriceProduct (salesManagerUsername, productID, newPrice, discountPercent) VALUES (?, ?, ?, ?)',
+        [req.username, productId, price, discountPercentage]
+      );
+      
+      // If a discount was applied, automatically send notifications
+      if (discountPercentage > 0) {
+        try {
+          // Import the sendDiscountNotifications function
+          const { sendDiscountNotifications } = await import('../Services/discountNotifier.js');
+          
+          // Call it directly
+          const notifyResult = await sendDiscountNotifications(productId, discountPercentage, price);
+          console.log('Notification result:', notifyResult);
+          
+          return res.status(200).json({
+            message: 'Product price updated successfully',
+            productId: productId,
+            newPrice: price,
+            newDiscountPercentage: discountPercentage,
+            notificationsSent: notifyResult.sent || 0
+          });
+        } catch (notifyError) {
+          console.error('Error sending discount notifications:', notifyError);
+          return res.status(200).json({
+            message: 'Product price updated successfully, but notification failed',
+            productId: productId,
+            newPrice: price,
+            newDiscountPercentage: discountPercentage,
+            notificationError: notifyError.message
+          });
+        }
+      }
+      
+      return res.status(200).json({
+        message: 'Product price updated successfully',
+        productId: productId,
+        newPrice: price,
+        newDiscountPercentage: discountPercentage
+      });
     } catch (error) {
       console.error('Error updating product price:', error);
       return res.status(500).json({ message: 'Error updating product price', error: error.message });
     }
   }
+);
+
+// Add this route to notify discounts
+router.post('/products/notify-discount', 
+  authenticateToken, 
+  authenticateRole(['salesManager']), 
+  sendWishlistDiscountNotifications
 );
 
 // ===== CATEGORY MANAGEMENT ROUTES =====
@@ -604,6 +665,115 @@ router.get('/debug/football-products', async (req, res) => {
   } catch (error) {
     console.error('Error in football-products debug route:', error);
     return res.status(500).json({ message: 'Error fetching football products', error: error.message });
+  }
+});
+
+// Add this near your other debugging routes
+router.get('/debug/wishlist-notifications/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const connection = await pool.getConnection();
+    
+    try {
+      // Get product details
+      const [product] = await connection.query(
+        'SELECT * FROM Product WHERE productID = ?', 
+        [productId]
+      );
+      
+      if (product.length === 0) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      
+      // Get all wishlist items for this product
+      const [wishlistItems] = await connection.query(
+        'SELECT * FROM WishlistItems WHERE productID = ?',
+        [productId]
+      );
+      
+      // Get all wishlists
+      const [wishlists] = await connection.query(
+        'SELECT * FROM Wishlist WHERE wishlistID IN (?)',
+        [wishlistItems.map(item => item.wishlistID).length ? 
+          wishlistItems.map(item => item.wishlistID) : [0]]
+      );
+      
+      // Get customers who should be notified
+      const [customers] = await connection.query(`
+        SELECT DISTINCT c.customerID, c.username, u.name, u.email
+        FROM WishlistItems wi
+        JOIN Wishlist w ON wi.wishlistID = w.wishlistID
+        JOIN Customer c ON w.customerID = c.customerID
+        JOIN USERS u ON c.username = u.username
+        WHERE wi.productID = ?
+      `, [productId]);
+      
+      return res.status(200).json({
+        product: product[0],
+        wishlistItems,
+        wishlists,
+        customers,
+        summary: `Found ${customers.length} customers who should receive notifications for product ${productId}`
+      });
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Error in wishlist notification debug endpoint:', error);
+    return res.status(500).json({ message: 'Error checking wishlist notifications', error: error.message });
+  }
+});
+
+// Add this debugging route to help troubleshoot wishlist notifications
+
+router.get('/debug/wishlist-check/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    // First check if product exists
+    const [product] = await pool.query(
+      'SELECT name FROM Product WHERE productID = ?', 
+      [productId]
+    );
+    
+    if (product.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    // Check if product is in any wishlist
+    const [wishlistItems] = await pool.query(
+      'SELECT wi.wishlistID, w.customerID FROM WishlistItems wi JOIN Wishlist w ON wi.wishlistID = w.wishlistID WHERE wi.productID = ?',
+      [productId]
+    );
+    
+    // Get customer details for these wishlist items
+    const customerDetails = [];
+    for (const item of wishlistItems) {
+      const [customer] = await pool.query(
+        `SELECT c.customerID, u.name, u.email
+         FROM Customer c
+         JOIN USERS u ON c.username = u.username
+         WHERE c.customerID = ?`,
+        [item.customerID]
+      );
+      
+      if (customer.length > 0) {
+        customerDetails.push(customer[0]);
+      }
+    }
+    
+    return res.status(200).json({
+      productId,
+      productName: product[0].name,
+      totalWishlists: wishlistItems.length,
+      customers: customerDetails,
+      message: wishlistItems.length > 0 
+        ? `Product is in ${wishlistItems.length} wishlists` 
+        : 'Product is not in any wishlist'
+    });
+  } catch (error) {
+    console.error('Error checking wishlists:', error);
+    return res.status(500).json({ error: 'Failed to check wishlists' });
   }
 });
 

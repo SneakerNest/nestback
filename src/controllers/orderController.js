@@ -1,6 +1,6 @@
 import { pool } from '../config/database.js';
 
-// Update the getOrder function to be more robust in fetching address
+// Update the getOrder function to remove references to the nonexistent size column
 const getOrder = async (req, res) => {
   try {
     const orderID = req.params.id;
@@ -52,12 +52,12 @@ const getOrder = async (req, res) => {
       }
     }
 
-    // Get order items with product names
+    // Get order items with product names - REMOVED size from query
     const [items] = await pool.query('SELECT * FROM OrderOrderItemsProduct WHERE orderID = ?', [orderID]);
     for (let item of items) {
-      const [product] = await pool.query('SELECT name, size FROM Product WHERE productID = ?', [item.productID]);
+      const [product] = await pool.query('SELECT name FROM Product WHERE productID = ?', [item.productID]);
       item.productName = product[0].name;
-      item.size = product[0].size;
+      // Removed setting item.size
     }
     
     order.orderItems = items;
@@ -68,11 +68,26 @@ const getOrder = async (req, res) => {
   }
 };
 
+// Make sure getOrdersByDateRange supports getting all order details
 const getOrdersByDateRange = async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
-    const [orders] = await pool.query('SELECT * FROM `Order` WHERE timeOrdered BETWEEN ? AND ?', [startDate, endDate]);
+    
+    // Get orders with customer information
+    const [orders] = await pool.query(`
+      SELECT o.*, 
+        c.username,
+        u.name AS customerName, 
+        u.email AS customerEmail
+      FROM \`Order\` o
+      LEFT JOIN Customer c ON o.customerID = c.customerID
+      LEFT JOIN USERS u ON c.username = u.username
+      WHERE o.timeOrdered BETWEEN ? AND ?
+      ORDER BY o.timeOrdered DESC
+    `, [startDate, endDate]);
+    
     if (orders.length === 0) return res.status(404).json({ msg: 'No orders found' });
+    
     res.status(200).json(orders);
   } catch (err) {
     console.log(err);
@@ -102,7 +117,6 @@ const getUserOrders = async (req, res) => {
         p.name as productName,
         oi.quantity,
         oi.purchasePrice,
-        p.size
       FROM \`Order\` o
       LEFT JOIN OrderOrderItemsProduct oi ON o.orderID = oi.orderID
       LEFT JOIN Product p ON oi.productID = p.productID
@@ -124,8 +138,7 @@ const getUserOrders = async (req, res) => {
             productID: curr.productID,
             name: curr.productName,
             quantity: curr.quantity,
-            purchasePrice: curr.purchasePrice,
-            size: curr.size
+            purchasePrice: curr.purchasePrice
           });
         }
       } else {
@@ -142,7 +155,6 @@ const getUserOrders = async (req, res) => {
             name: curr.productName,
             quantity: curr.quantity,
             purchasePrice: curr.purchasePrice,
-            size: curr.size
           }] : []
         });
       }

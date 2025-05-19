@@ -14,6 +14,8 @@ import deliveryRouter from './routes/DeliveryAPI.js';
 import invoiceRouter from './routes/InvoiceAPI.js';
 import imagesRouter from './routes/ImagesAPI.js';
 import reviewsRouter from './routes/ReviewsAPI.js';
+import financialRouter from './routes/FinancialAPI.js';
+import refundRouter from './routes/RefundAPI.js';
 import cors from 'cors'; 
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -49,6 +51,8 @@ app.use('/api/v1/delivery', deliveryRouter);
 app.use('/api/v1/invoice', invoiceRouter);
 app.use('/api/v1/images', imagesRouter);
 app.use('/api/v1/reviews', reviewsRouter);
+app.use('/api/v1/financial', financialRouter);
+app.use('/api/v1/refunds', refundRouter);
 app.use('/assets/images', express.static(path.join(process.cwd(), 'src/assets/images')));
 
 // Health check
