@@ -727,48 +727,88 @@ export const approveProduct = async (req, res) => {
 };
 
 export const deleteProduct = async (req, res) => {
+  const connection = await pool.getConnection();
+  
   try {
     const { id } = req.params;
     
     // First, check if product exists
-    const [product] = await pool.query('SELECT * FROM Product WHERE productID = ?', [id]);
+    const [product] = await connection.query('SELECT * FROM Product WHERE productID = ?', [id]);
     if (product.length === 0) {
+      connection.release();
       return res.status(404).json({ message: 'Product not found' });
     }
     
-    console.log(`Attempting to delete product ID ${id}`);
+    console.log(`Deleting product ID ${id}: ${product[0].name}`);
     
-    // Try to delete all related records first using simple queries without transaction
+    await connection.beginTransaction();
+    
+    // Disable foreign key checks to force deletion
+    await connection.query('SET FOREIGN_KEY_CHECKS=0');
+    
+    // Delete from ALL possible tables that reference products
+    // First, handle review-related tables
+    await connection.query('DELETE FROM ReviewDiscussesProduct WHERE productID = ?', [id]);
+    
+    // Handle sales manager price management
+    await connection.query('DELETE FROM SalesManagerManagesPriceProduct WHERE productID = ?', [id]);
+    
+    // Handle product manager restocks
+    await connection.query('DELETE FROM ProductManagerRestocksProduct WHERE productID = ?', [id]);
+    
+    // Delete from standard tables
+    await connection.query('DELETE FROM CategoryCategorizesProduct WHERE productID = ?', [id]);
+    await connection.query('DELETE FROM Pictures WHERE productID = ?', [id]);
+    await connection.query('DELETE FROM CartContainsProduct WHERE productID = ?', [id]);
+    await connection.query('DELETE FROM WishlistItems WHERE productID = ?', [id]);
+    await connection.query('DELETE FROM OrderOrderItemsProduct WHERE productID = ?', [id]);
+    await connection.query('DELETE FROM Returns WHERE productID = ?', [id]);
+    
+    // Handle CustomerViewsProduct if it exists
     try {
-      // Disable foreign key checks temporarily to force deletion
-      await pool.query('SET FOREIGN_KEY_CHECKS=0');
-      
-      // Delete all related records
-      await pool.query('DELETE FROM CategoryCategorizesProduct WHERE productID = ?', [id]);
-      await pool.query('DELETE FROM Pictures WHERE productID = ?', [id]);
-      await pool.query('DELETE FROM CartContainsProduct WHERE productID = ?', [id]);
-      await pool.query('DELETE FROM WishlistItems WHERE productID = ?', [id]);
-      await pool.query('DELETE FROM OrderOrderItemsProduct WHERE productID = ?', [id]);
-      
-      // Finally delete the product itself
-      await pool.query('DELETE FROM Product WHERE productID = ?', [id]);
-      
-      // Re-enable foreign key checks
-      await pool.query('SET FOREIGN_KEY_CHECKS=1');
-      
-      return res.status(200).json({ message: 'Product deleted successfully' });
-    } catch (innerError) {
-      console.error('Error in deletion process:', innerError);
-      
-      // Re-enable foreign key checks in case of error
-      await pool.query('SET FOREIGN_KEY_CHECKS=1');
-      throw innerError;
+      await connection.query('DELETE FROM CustomerViewsProduct WHERE productID = ?', [id]);
+    } catch (err) {
+      console.log('CustomerViewsProduct table might not exist, continuing deletion');
     }
+    
+    // Handle any other potential references
+    try {
+      await connection.query('DELETE FROM ProductAttributes WHERE productID = ?', [id]);
+    } catch (err) {
+      console.log('ProductAttributes table might not exist, continuing deletion');
+    }
+    
+    // Finally delete the product itself
+    await connection.query('DELETE FROM Product WHERE productID = ?', [id]);
+    
+    // Re-enable foreign key checks
+    await connection.query('SET FOREIGN_KEY_CHECKS=1');
+    
+    await connection.commit();
+    console.log(`Product ID ${id} successfully deleted`);
+    
+    return res.status(200).json({ 
+      success: true,
+      message: 'Product deleted successfully' 
+    });
+    
   } catch (error) {
     console.error('Error deleting product:', error);
+    
+    try {
+      await connection.rollback();
+      await connection.query('SET FOREIGN_KEY_CHECKS=1');
+    } catch (rollbackError) {
+      console.error('Error during rollback:', rollbackError);
+    }
+    
     return res.status(500).json({ 
-      message: 'Error deleting product - will try direct deletion', 
-      error: error.message 
+      success: false,
+      message: 'Failed to delete product',
+      error: error.message,
+      details: 'The product may have dependencies in the database that need to be removed first.'
     });
+  } finally {
+    connection.release();
   }
 };

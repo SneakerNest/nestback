@@ -473,41 +473,137 @@ router.get('/debug/pending-products', async (req, res) => {
 
 // Add this new route specifically for pending products deletion
 
-// Add a special route for pending product deletion that bypasses all checks
+// Update the debug endpoint for pending product deletion
+
 router.delete('/debug/pending-products/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  
   try {
     const { id } = req.params;
     
     console.log(`EMERGENCY DELETE: Attempting to delete pending product ID ${id}`);
     
+    await connection.beginTransaction();
+    
     // Force deletion with direct SQL query and disabled checks
-    await pool.query('SET FOREIGN_KEY_CHECKS=0');
+    await connection.query('SET FOREIGN_KEY_CHECKS=0');
     
-    // Delete from ALL possible related tables
-    await pool.query('DELETE FROM CategoryCategorizesProduct WHERE productID = ?', [id]);
-    await pool.query('DELETE FROM Pictures WHERE productID = ?', [id]);
-    await pool.query('DELETE FROM CartContainsProduct WHERE productID = ?', [id]);
-    await pool.query('DELETE FROM WishlistItems WHERE productID = ?', [id]);
-    await pool.query('DELETE FROM OrderOrderItemsProduct WHERE productID = ?', [id]);
-    await pool.query('DELETE FROM Product WHERE productID = ?', [id]);
+    // Delete from ALL possible tables (comprehensive list)
+    const tables = [
+      'ReviewDiscussesProduct',
+      'SalesManagerManagesPriceProduct',
+      'ProductManagerRestocksProduct',
+      'CategoryCategorizesProduct',
+      'Pictures',
+      'CartContainsProduct',
+      'WishlistItems',
+      'OrderOrderItemsProduct',
+      'Returns',
+      'CustomerViewsProduct',
+      'ProductAttributes'
+    ];
     
-    await pool.query('SET FOREIGN_KEY_CHECKS=1');
+    // Try to delete from all potential tables
+    for (const table of tables) {
+      try {
+        await connection.query(`DELETE FROM ${table} WHERE productID = ?`, [id]);
+        console.log(`Deleted product references from ${table}`);
+      } catch (tableError) {
+        console.log(`Table ${table} might not exist or no entries found, continuing deletion`);
+      }
+    }
     
-    return res.status(200).json({ message: 'Pending product deleted successfully' });
+    // Finally delete the product itself
+    await connection.query('DELETE FROM Product WHERE productID = ?', [id]);
+    
+    await connection.query('SET FOREIGN_KEY_CHECKS=1');
+    await connection.commit();
+    
+    console.log(`Pending product ${id} successfully deleted`);
+    return res.status(200).json({ 
+      success: true,
+      message: 'Pending product deleted successfully' 
+    });
   } catch (error) {
     console.error('Error in emergency pending product deletion:', error);
     
-    // Always re-enable foreign key checks
     try {
-      await pool.query('SET FOREIGN_KEY_CHECKS=1');
-    } catch (err) {
-      console.error('Error resetting foreign key checks:', err);
+      await connection.rollback();
+      await connection.query('SET FOREIGN_KEY_CHECKS=1');
+    } catch (rollbackError) {
+      console.error('Error during rollback:', rollbackError);
     }
     
     return res.status(500).json({ 
-      message: 'Failed to delete pending product', 
-      error: error.message 
+      success: false,
+      message: 'Failed to delete pending product',
+      error: error.message,
+      detail: 'Check server logs for more information'
     });
+  } finally {
+    connection.release();
+  }
+});
+
+// Add this new route near the other deletion routes
+
+// Emergency direct database deletion endpoint
+router.post('/products/emergency-delete', async (req, res) => {
+  const { productId } = req.body;
+  const connection = await pool.getConnection();
+  
+  try {
+    console.log(`Emergency delete for product ID: ${productId}`);
+    
+    await connection.beginTransaction();
+    await connection.query('SET FOREIGN_KEY_CHECKS=0');
+    
+    // Try to directly delete from all possible tables
+    const tables = [
+      'Product',
+      'ReviewDiscussesProduct',
+      'SalesManagerManagesPriceProduct',
+      'ProductManagerRestocksProduct',
+      'CategoryCategorizesProduct',
+      'Pictures',
+      'CartContainsProduct',
+      'WishlistItems',
+      'OrderOrderItemsProduct',
+      'Returns',
+      'CustomerViewsProduct',
+      'ProductAttributes'
+    ];
+    
+    for (const table of tables) {
+      try {
+        const [result] = await connection.query(
+          `DELETE FROM ${table} WHERE ${table === 'Product' ? 'productID' : 'productID'} = ?`, 
+          [productId]
+        );
+        console.log(`Deleted from ${table}: ${result.affectedRows} rows`);
+      } catch (tableError) {
+        console.error(`Could not delete from ${table}:`, tableError.message);
+      }
+    }
+    
+    await connection.query('SET FOREIGN_KEY_CHECKS=1');
+    await connection.commit();
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Product deleted with emergency method'
+    });
+  } catch (error) {
+    await connection.rollback();
+    await connection.query('SET FOREIGN_KEY_CHECKS=1');
+    console.error('Emergency delete failed:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Emergency deletion failed',
+      error: error.message
+    });
+  } finally {
+    connection.release();
   }
 });
 
